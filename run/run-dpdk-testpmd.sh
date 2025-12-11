@@ -11,8 +11,12 @@
 # defaults will be picked otherwise and may not be optimal.
 # path helpers
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
-# dpdkhelp/.cache
+# dpdkhelp/.dpdkcache
 CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
+UTIL_DIR="$(dirname "$SCRIPT_DIR")/util"
+# shellcheck disable=SC1091
+source "$UTIL_DIR/functions.sh"
+
 [[ -d "$CACHE_DIR" ]] && [[ -f "$CACHE_DIR/vdev_args" ]] || {
     echo "Error: no vdev_args file was found cached in $CACHE_DIR. Run setup/setup-netvsc-pmd --device eth1[,eth2] first.";
     exit 1; 
@@ -88,8 +92,8 @@ done
 
 # path helpers
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
-# dpdkhelp/.cache
-CACHE_DIR="$(dirname "$SCRIPT_DIR")/.cache"
+# dpdkhelp/.dpdkcache
+CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
 [[ -d "$CACHE_DIR" ]] && [[ -f "$CACHE_DIR/vdev_args" ]] || {
     echo "Error: no vdev_args file was found cached in $CACHE_DIR. Run setup/setup-netvsc-pmd --device eth1[,eth2] first.";
     exit 1; 

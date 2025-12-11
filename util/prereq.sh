@@ -1,4 +1,7 @@
 #! /bin/bash
+
+# author: mamcgove at microsoft aka @mcgov on github
+
 #shellcheck disable=SC2002,SC2015
 OPTIONS="h"
 LONGOPTIONS="required:,available:,help"

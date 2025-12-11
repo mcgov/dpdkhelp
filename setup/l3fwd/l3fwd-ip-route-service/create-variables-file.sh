@@ -1,5 +1,6 @@
 #! /bin/bash
 
+# author: mamcgove at microsoft aka @mcgov on github
 
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 OPTIONS="g:d:r:"

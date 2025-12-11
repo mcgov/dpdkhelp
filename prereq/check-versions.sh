@@ -3,8 +3,7 @@
 # setup/check_versions.sh
 # check for rdma-core and dpdk, then
 # prompt user to install one or both in a specific order.
-# author: @mcgov on github ( mamcgove@microsoft.com )
-
+# author: mamcgove at microsoft aka @mcgov on github
 
 ((failed=0))
 declare -A version_checks;

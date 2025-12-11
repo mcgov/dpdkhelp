@@ -1,5 +1,5 @@
 #! /bin/bash
-
+# author: mamcgove at microsoft aka @mcgov on github
 # check the environment and verify if the minimum requirements for DPDK and mana are available
 modules_needed=( mana mana_ib uio_hv_generic )
 

@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# author: mamcgove at microsoft aka @mcgov on github
+
 # convenience functions for bash list and math
 
 function range(){
@@ -64,7 +66,10 @@ function is_mana_vm () {
     # check for the mana pci id and return 0 if anything is found
     [[ -n $(lspci -d 1414:00ba:0200) ]]
 }
-
+function get_network_pci_devices () {
+    # list all devices of device class network
+    lspci -d ::0200
+}
 function damn() {
     echo "$@" 1>&2
 }
