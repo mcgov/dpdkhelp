@@ -129,7 +129,7 @@ else
 fi
 
 # save the vdev argument to a file
-echo -n "$VDEV_ARG" > "$CACHE_DIR"/vdev_args
+echo -n "$VDEV_ARG" > "$CACHE_DIR"/vdev_arg
 
 # now, load the uio_hv_generic driver if needed...
 [[ -d /sys/bus/vmbus/drivers/uio_hv_generic ]] || {

@@ -18,10 +18,6 @@ UTIL_DIR="$(dirname "$SCRIPT_DIR")/util"
 source "$UTIL_DIR/functions.sh"
 MP_ARGS=()
 
-[[ -d "$CACHE_DIR" ]] && [[ -f "$CACHE_DIR/vdev_args" ]] || {
-    echo "Error: no vdev_args file was found cached in $CACHE_DIR. Run setup/setup-netvsc-pmd --device eth1[,eth2] first.";
-    exit 1; 
-}
 
 OPTIONS="hm:t:"
 LONGOPTIONS="mode:,tx-ip:,help,timeout:,queues:,core-list:,nb-cores:,asan,num-procs:,proc-id:"
@@ -103,7 +99,7 @@ done
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 # dpdkhelp/.dpdkcache
 CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
-[[ -d "$CACHE_DIR" ]] && [[ -f "$CACHE_DIR/vdev_args" ]] || {
+[[ -d "$CACHE_DIR" ]] && [[ -f "$CACHE_DIR/vdev_arg" ]] || {
     echo "Error: no vdev_args file was found cached in $CACHE_DIR. Run setup/setup-netvsc-pmd --device eth1[,eth2] first.";
     exit 1; 
 }
@@ -125,7 +121,7 @@ if [[ -z "$TIMEOUT" ]]; then
     TIMEOUT=120
 fi
 
-if [[ "$FWDMODE" == "rxonly" ]] || [[ -z "$SEND_IP" ]] || [[ -z "$RECV_IP" ]]; then
+if [[ "$FWDMODE" == "rxonly" ]] || [[ -z "$SEND_IP" ]] || [[ -z "$RECV_IP" ]] || [[ "$FWDMODE" == "5tswap" ]]; then
     SENDER_IP_ARG=""
 else
     SENDER_IP_ARG="--tx-ip=\"$SEND_IP,$RECV_IP\""
@@ -146,7 +142,7 @@ sudo ufw disable || true;
                 FWD_CORES=8
             fi
             ;;
-        "rxonly")
+        "rxonly"|"5tswap")
             if is_mana_vm; then
                 QUEUE_COUNT=8
                 FWD_CORES=8
@@ -157,12 +153,18 @@ sudo ufw disable || true;
             ;;
     esac
     # this logic sucks. I really don't know what the best way to handle this is.
-    # defaults are hard. best practice, use the queue and core-list flags
+    # defaults are hard. best practice, use the queue and core-list flags.
+    # otherwise, the default will try to do this:
+    # either use a minimum amount of physical cores (1 per tx/rx queue and 1 service core)
+    # or use up all the physical cores in numa 0.
+    # I have 0 confidence in my ability to adequately explain why.
+    # It's a VM; so do we really get a good view of the cpus and numa layout?
+    # Even if we do _now_; is this going to consistent across all past and future skus? 
 
     # number of cores on the VM on node 0
     LAST_CORE_NUMA0=$(lscpu | grep --fixed-strings 'NUMA node0 CPU(s):' | cut -f 2 -d ':' | xargs | cut -d '-' -f2)
     ((LAST_CORE=FWD_CORES*2))
-    ((LAST_CORE=LAST_CORE+4))
+    ((LAST_CORE=LAST_CORE+2))
 
     [[ "$LAST_CORE" -le $LAST_CORE_NUMA0 ]] || {
         echo "Error: use a size with $LAST_CORE or more cores on numa 0."
@@ -174,7 +176,7 @@ sudo ufw disable || true;
     # core list arg
     is_mana_vm \
     && {
-        CORE_LIST=$( range_cs 2 "$LAST_CORE" 2 );
+        CORE_LIST=$( range_cs 1 "$LAST_CORE" 2 );
     } \
     || CORE_LIST="2-$LAST_CORE"
     
@@ -182,7 +184,7 @@ sudo ufw disable || true;
 }
 
 # fetch the vdev args from the cache
-VDEV_ARG=$(cat "$CACHE_DIR/vdev_args")
+VDEV_ARG=$(cat "$CACHE_DIR/vdev_arg")
 
 is_mana_vm \
 && DESCRIPTOR_COUNT=256 \

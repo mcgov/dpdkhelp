@@ -55,6 +55,20 @@ function floorpow2() {
     done
     echo "$bit"
 }
+
+function ceilpow2() {
+    # ceil a value to the nearest power of 2...
+    # or 1 if the value is 1
+    value="$1"
+    bit=1
+    while (( (bit << 1) <= value )); do
+        ((bit=bit << 1))
+    done
+    # shift one more time unless we were already a power of 2
+    [[ "$bit" == "$1" ]] || ((bit=bit<<1));
+    echo "$bit"
+}
+
 function element_count_cs() {
     # count elements of a csv list
     local list_of_elements="$1"

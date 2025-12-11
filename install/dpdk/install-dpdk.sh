@@ -4,6 +4,9 @@
 # author: mamcgove at microsoft aka @mcgov on github
 
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
+UTIL_DIR=$(dirname "$(dirname "$SCRIPT_DIR")")/util
+source "$UTIL_DIR/functions.sh"
+
 OPTIONS="d:h"
 LONGOPTIONS="dir:,build-only,help,asan"
 
@@ -68,10 +71,17 @@ cp "$SCRIPT_DIR"/symmetric_mp_main.c ./examples/multi_process/symmetric_mp/main.
     exit 1;
 }
 echo "export ASAN_SYMBOLIZER_PATH=\$( which llvm-symbolizer )" >> ~/.bashrc
-# CC=clang CXX=clang++ 
+# CC=clang CXX=clang++
+# set the 'max cores' build argument for DPDK.
+# doing this dynamically is a little weird, the max by default is 128
+# but we now have sizes with > 300 cores and the max in dpdk is 512
+# I'm leaving this code here.... but whatever let's just use 512.
+# max_cores=$(lscpu | grep -P '^CPU\(s\):' | awk ' { print $2 } ')
+# [[ "$max_cores" -gt 128 ]] &&  max_cores=$(ceilpow2 "$max_cores") || max_cores=256
+max_cores=512
 meson setup -Dexamples=l3fwd,multi_process/symmetric_mp,devname \
     -Denable_drivers=net/mana,*/mlx*,bus/vmbus,bus/vdev,net/netvsc,net/ring,net/virtio,net/bonding,bus/auxiliary,common/*,net/vdev_netvsc \
-    -Denable_apps=app/test-pmd -Ddisable_drivers=net/failsafe -Dmax_lcores=192 --buildtype=debug "${BUILD_TYPE_ARG[@]}" build \
+    -Denable_apps=app/test-pmd -Ddisable_drivers=net/failsafe -Dmax_lcores="$max_cores" --buildtype=debug "${BUILD_TYPE_ARG[@]}" build \
     || { echo  "meson setup failed!"; exit 1; }
 
 for libdir in /lib/clang/*/lib/linux; do

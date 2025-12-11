@@ -82,7 +82,7 @@ for device in "${devices[@]}"; do
     if [[ -z "${addresses["$pci_slot"]}" ]]; then
         addresses["$pci_slot"]="mac=$address"
     else
-        addresses["$pci_slot"]=",mac=$address"
+        addresses["$pci_slot"]+=",mac=$address"
     fi
 done
 
