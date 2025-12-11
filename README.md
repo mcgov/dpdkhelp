@@ -1,6 +1,7 @@
 # dpdkhelp
 
 here's some of my example scripts to set up and run dpdk on azure.
+folder layout is important, don't scrooch stuff around.
 -mm
 
 ## quick start
