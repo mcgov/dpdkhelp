@@ -1,0 +1,55 @@
+#! /bin/bash
+
+# author: mamcgove aka mcgov on github
+
+host_list=()
+((failed=0))
+# run ssh command on multiple hosts, bash only
+OPTIONS="h:d:"
+LONGOPTIONS="help,hosts:"
+
+# Parse the options
+PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTIONS --name "$0" -- "$@")
+# shellcheck disable=SC2181
+if [[ $? -ne 0 ]]; then
+    # If getopt has complained about wrong arguments, print the error message and exit
+    exit 2
+fi
+eval set -- "$PARSED"
+# Process the options
+while true; do
+    case "$1" in
+        -h|--help)
+            echo "Usage: $0 --hosts user@host,user@host2 -- commands "
+            exit 0
+            ;;
+        -d|--hosts)
+            # allow comma seperated or multiple instances of -d arg
+            if [[ "$2" == *,* ]]; then
+                IFS=',' read -r -a hosts <<< "$2"
+                for host in "${hosts[@]}"; do
+                    host_list+=( "$host" )
+                done
+            else
+                host_list+=( "$2" )
+            fi
+            shift 2
+            ;;
+        --)
+            break
+            ;;
+        *)
+            echo "unrecognized argument: $1"
+            exit 1
+            ;;
+    esac
+done
+pids=()
+for host in "${host_list[@]}" ; do
+    ssh -n "$host" "$@" &
+    pids+=("$!")
+done
+for pid in "${pids[@]}"; do 
+    wait "$pid" || ((failed++))
+done
+exit "$failed"
