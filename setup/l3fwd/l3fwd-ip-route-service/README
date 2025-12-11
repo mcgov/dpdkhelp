@@ -1,0 +1,24 @@
+# l3fwd
+
+## description
+This folder contains a directory with scripts to set up a systemd service for l3fwd testing.
+
+The service, when enabled, does the following:
+- disables ufw
+- Creates routing rules, configurable with environment variables.
+    ex: 
+        For any packets from subnet 10.0.X.0/24 bound for subnet 10.0.Y.0/24 send them first to gateway address of 10.0.X.X
+
+This (hopefully) makes it less painful to test l3fwd and testpmd on the same machine.
+The 'ip' routing rules will not survive a reboot; but they will be re-applied as long as the l3fwd-ip-route.service is enabled. 
+For a given environment, you set up the variables file and enable the service. When you want to switch back to testing testpmd, just disable the service and reboot.
+
+## To create the variables file:
+./create_variables_file.sh --gateway $gateway_ip --route-via $source_subnet --destination $destination_ip_address
+
+## Then, to create and enable the service (first time setup):
+./setup-ip-route.sh
+
+## to disable the service and reset the default routing rules
+sudo systemctl disable l3fwd-ip-route.service && sudo reboot
+

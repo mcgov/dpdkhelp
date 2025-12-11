@@ -1,0 +1,13 @@
+[Unit]
+Description=l3fwd ip-route setup
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=5
+ExecStart=/usr/bin/env bash /opt/lsg-tools/mmdpdk/setup/l3fwd-ip-route-service/setup-ip-route.sh
+
+[Install]
+WantedBy=multi-user.target
