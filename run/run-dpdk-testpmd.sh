@@ -16,6 +16,7 @@ CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
 UTIL_DIR="$(dirname "$SCRIPT_DIR")/util"
 # shellcheck disable=SC1091
 source "$UTIL_DIR/functions.sh"
+MP_ARGS=()
 
 [[ -d "$CACHE_DIR" ]] && [[ -f "$CACHE_DIR/vdev_args" ]] || {
     echo "Error: no vdev_args file was found cached in $CACHE_DIR. Run setup/setup-netvsc-pmd --device eth1[,eth2] first.";
@@ -23,7 +24,7 @@ source "$UTIL_DIR/functions.sh"
 }
 
 OPTIONS="hm:t:"
-LONGOPTIONS="mode:,tx-ip:,help,timeout:,queues:,core-list:,nb-cores:,asan"
+LONGOPTIONS="mode:,tx-ip:,help,timeout:,queues:,core-list:,nb-cores:,asan,num-procs:,proc-id:"
 # Parse the options
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTIONS --name "$0" -- "$@")
 # shellcheck disable=SC2181
@@ -77,6 +78,14 @@ while true; do
             ;;
         --timeout|-t)
             TIMEOUT="$2"
+            shift 2
+            ;;
+        --num-procs)
+            MP_ARGS+=( --num-procs "$2 ")
+            shift 2
+            ;;
+        --proc-id)
+            MP_ARGS+=( --proc-id "$2" )
             shift 2
             ;;
         --)
@@ -181,7 +190,7 @@ is_mana_vm \
 
 # log the testpmd command for future re-runs
 # --log-level=mana,debug --log-level=netvsc,debug --log-level=vmbus,debug
-RUN_DPDK_CMD="sudo --preserve-env $USE_ASAN_OPTIONS /usr/local/bin/dpdk-testpmd -l $CORE_LIST $VDEV_ARG -- --forward-mode=$FWDMODE --auto-start --txq=$QUEUE_COUNT --rxq=$QUEUE_COUNT --txonly-multi-flow --record-burst-stats --record-core-cycles --stats 2 $SENDER_IP_ARG --hot-plug --nb-cores=$FWD_CORES"
+RUN_DPDK_CMD="sudo --preserve-env $USE_ASAN_OPTIONS /usr/local/bin/dpdk-testpmd -l $CORE_LIST $VDEV_ARG --proc-type=auto -- --forward-mode=$FWDMODE --auto-start --txq=$QUEUE_COUNT --rxq=$QUEUE_COUNT --txonly-multi-flow --record-burst-stats --record-core-cycles --stats 2 $SENDER_IP_ARG --nb-cores=$FWD_CORES ${MP_ARGS[*]}"
 # mana likes having the number of forwarding cores specified
 if is_mana_vm; then
     #RUN_DPDK_CMD+=" --nb-cores=$FWD_CORES"
