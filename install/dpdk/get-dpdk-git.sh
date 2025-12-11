@@ -1,6 +1,10 @@
 #! /bin/bash
 
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
+# install/.cache
+CACHE_DIR="$(dirname "$SCRIPT_DIR")/.cache"
+[[ -d "$CACHE_DIR" ]] || mkdir -p "$CACHE_DIR"
+
 OPTIONS="G:R:"
 LONGOPTIONS="git:,ref:"
 
@@ -59,6 +63,8 @@ fi
 git clone "$DPDK_GIT_SOURCE" ./dpdk \
 || handle_exit $? "could not checkout DPDK from $DPDK_GIT_SOURCE"
 
+readlink -f ./dpdk > "$CACHE_DIR/dpdk_src_dir"
+
 pushd dpdk \
 || handle_exit $? "could not pushd to dpdk directory!"
 
@@ -73,6 +79,6 @@ git clone https://github.com/mcgov/devname.git \
 
 popd || handle_exit $? "could not popd from dpdk directory!"
 
-echo "dpdk" > ~/dpdk_src_dir
+#echo "dpdk" > ~/dpdk_src_dir
 
 exit 0

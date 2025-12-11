@@ -23,7 +23,7 @@ if [[ -z "$DPDK_TAR_DIR" ]]; then
 fi
 
 # this is gross idk. maybe better to ask for confirmation and destroy/rename?
-echo "$DPDK_TAR_DIR" > "$CACHE_DIR"/dpdk_src_dir
+readlink -f $DPDK_TAR_DIR > "$CACHE_DIR"/dpdk_src_dir
 
 
 git clone https://github.com/mcgov/devname.git "$DPDK_TAR_DIR"/examples/devname \

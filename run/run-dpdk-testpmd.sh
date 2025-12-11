@@ -6,16 +6,12 @@
 # you can use the same script to start a sender and receiver on two VMs
 # `pps-dpdk-testpmd.sh rxonly` on the receiver
 # `pps-dpdk-testpmd.sh txonly $SENDER_IP,$RECEIVER_IP` on the sender
-SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
-# dpdkhelp/.cache
-CACHE_DIR="$(dirname "$SCRIPT_DIR")/.cache"
-[[ -d "$CACHE_DIR" ]] && [[ -f "$CACHE_DIR/vdev_args" ]] || {
-    echo "Error: no vdev_args file was found cached in $CACHE_DIR. Run setup/setup-netvsc-pmd --device eth1[,eth2] first.";
-    exit 1; 
-}
+#
+# set --queue and --core-list and --nb-cores arguments to tune performance,
+# defaults will be picked otherwise and may not be optimal.
 
 OPTIONS="hm:t:"
-LONGOPTIONS="mode:,tx-ip:,help,timeout:,queues:,core-list:,nb-cores:"
+LONGOPTIONS="mode:,tx-ip:,help,timeout:,queues:,core-list:,nb-cores:,asan"
 # Parse the options
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTIONS --name "$0" -- "$@")
 # shellcheck disable=SC2181
@@ -63,6 +59,10 @@ while true; do
             FWD_CORES="$2"
             shift 2
             ;;
+        --asan)
+            USE_ASAN_OPTIONS="ASAN_OPTIONS=detect_leaks=false LD_PRELOAD=$(find /usr/lib -name libasan.so)"
+            shift
+            ;;
         --timeout|-t)
             TIMEOUT="$2"
             shift 2
@@ -78,6 +78,15 @@ while true; do
 esac
 done
 
+# path helpers
+SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
+# dpdkhelp/.cache
+CACHE_DIR="$(dirname "$SCRIPT_DIR")/.cache"
+[[ -d "$CACHE_DIR" ]] && [[ -f "$CACHE_DIR/vdev_args" ]] || {
+    echo "Error: no vdev_args file was found cached in $CACHE_DIR. Run setup/setup-netvsc-pmd --device eth1[,eth2] first.";
+    exit 1; 
+}
+
 if [[ "$FWDMODE" == "txonly" ]]; then
     # txonly mode requires sender and receiver IP addresses
     # shellcheck disable=SC2015
@@ -86,67 +95,6 @@ if [[ "$FWDMODE" == "txonly" ]]; then
         exit 1;
     }
 fi
-
-function range(){
-    local _start=$1
-    local _end=$2
-    # allow step argument to skip indices
-    local _step="$3"
-    # keep track of count of items in range
-    # to allow skipping indices
-    local _counter=0;
-    # default step of 1
-    [[ -z "$_step" ]] && _step=1;
-    # do the loop
-    for ((i=_start; i<_end; i++))
-    do
-        ((_counter++%_step)) || echo "$i";
-    done
-}
-
-function range_cs() {
-    cores=(); 
-    for i in $(range "$1" "$2" "$3");
-    do 
-        cores+=("$i"); 
-    done
-    csvcores="${cores[*]}"; 
-    echo "${csvcores// /,}"
-}
-
-function floor() {
-    local value=$1
-    local n=$2
-    # return the value or the floor n
-    ((value > n )) && echo "$value" || echo "$n" 
-}
-
-function ceil() {
-    local value=$1
-    local n=$2
-    # return the value or the ceil n
-    ((value < n)) && echo "$value" || echo "$n" 
-}
-
-function floorpow2() {
-    # floor a value to the nearest power of 2...
-    # or 1 if the value is 1
-    value="$1"
-    bit=1
-    while (( (bit << 1) <= value )); do
-        ((bit=bit << 1))
-    done
-    echo "$bit"
-}
-function element_count_cs() {
-    # count elements of a csv list
-    local list_of_elements="$1"
-    IFS=',' read -r -a elements <<< "$list_of_elements"
-    echo "${#elements[@]}"
-}
-function is_mana_vm () {
-    [[ -n $(lspci -d 1414:00ba:0200) ]]
-}
 
 ## Parse Arguments
 
@@ -212,31 +160,16 @@ sudo ufw disable || true;
     echo "Note: set queue count to $QUEUE_COUNT with cores $CORE_LIST as default";
 }
 
-
-
+# fetch the vdev args from the cache
 VDEV_ARG=$(cat "$CACHE_DIR/vdev_args")
-
-
-
 
 is_mana_vm \
 && DESCRIPTOR_COUNT=256 \
 || DESCRIPTOR_COUNT=""
 
-# #check for MANA
-# if is_mana_vm; then
-#     # large MANA sizes require more careful consideration of NUMA and CPU caches
-#     # So, ensure that only one lcore per cpu is used
-#     LAST_CORE=$(lscpu | grep --fixed-strings 'NUMA node0 CPU(s):' | cut -f 2 -d ':' | xargs | cut -d '-' -f2)
-#     #THREADS_PER_CORE=$(lscpu | grep --fixed-strings 'Thread(s) per core:' | cut -f 2 -d ':' | xargs | cut -d '-' -f2)
-#     # if [[ $USE_CORE -gt $LAST_CORE ]]; then
-#     #     echo "Warning! You may be using more cores than can fit on a single NUMA node in this VM." 1>&2
-#     # fi
-# fi
-
 # log the testpmd command for future re-runs
 # --log-level=mana,debug --log-level=netvsc,debug --log-level=vmbus,debug
-RUN_DPDK_CMD="sudo timeout -s INT 900 /usr/local/bin/dpdk-testpmd -l $CORE_LIST $VDEV_ARG -- --forward-mode=$FWDMODE --auto-start --txq=$QUEUE_COUNT --rxq=$QUEUE_COUNT --txonly-multi-flow --record-burst-stats --record-core-cycles --stats 2 $SENDER_IP_ARG --hot-plug --nb-cores=$FWD_CORES"
+RUN_DPDK_CMD="$USE_ASAN_OPTIONS sudo --preserve-env timeout -s INT 900 /usr/local/bin/dpdk-testpmd -l $CORE_LIST $VDEV_ARG -- --forward-mode=$FWDMODE --auto-start --txq=$QUEUE_COUNT --rxq=$QUEUE_COUNT --txonly-multi-flow --record-burst-stats --record-core-cycles --stats 2 $SENDER_IP_ARG --hot-plug --nb-cores=$FWD_CORES"
 # mana likes having the number of forwarding cores specified
 if is_mana_vm; then
     #RUN_DPDK_CMD+=" --nb-cores=$FWD_CORES"

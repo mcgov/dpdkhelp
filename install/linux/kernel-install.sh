@@ -4,6 +4,12 @@
 # requires a MANA compatible kernel, rdma-core, and dpdk
 # This script is for ubuntu server >= 22.04 and RHEL >= 8.4
 
+SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
+#../setup
+SETUP_DIR="$(dirname "$SCRIPT_DIR"))/setup"
+# install/.cache
+CACHE_DIR="$(dirname "$SCRIPT_DIR")/.cache"
+[[ -d "$CACHE_DIR" ]] || mkdir -p "$CACHE_DIR"
 
 OPTIONS="P:G:T:R:vhk"
 LONGOPTIONS="patch:,git:,tar-url:,git-ref:,verbose,help,kasan,add-config:"
@@ -102,19 +108,18 @@ sleep 10
 # this throws off the driver_id fields and requires some tinkering for now.
 # note the special steps in the rdma-core installation path below.
 
-# hackey os detection, not for production.
+# hacky os detection, do not copypaste unless you want to look silly
 # tested on 22.04 and RHEL 8.6/9.2
 if command -v apt; then
-    export DEBIAN_FRONTEND=noninteractive
-    DEBIAN_FRONTEND=noninteractive sudo apt-get update -y -q
-    DEBIAN_FRONTEND=noninteractive sudo apt-get install -q -y \
-    build-essential cmake libudev-dev \
-    libnl-3-dev libnl-route-3-dev pkg-config \
-    valgrind python3-dev cython3 python3-docutils pandoc \
-    flex bison libssl-dev \
-    libelf-dev python3-pip dwarves libnuma-dev libpcap-dev \
-    python3-pyelftools
-    assert_success
+    export DEBIAN_FRONTEND=noninteractive;
+    sudo -E apt-get update -y -q;
+    # shellcheck disable=SC2015
+    "$SETUP_DIR/enable-build-deps.sh" && \
+        sudo apt-get build-dep -y -q dpdk rdma-core && \
+        sudo apt install flex bison libssl-dev libelf-dev python3-pip dwarves libnuma-dev libpcap-dev \
+    || { 
+        echo "could not install dependencies"; exit 1;
+    }
 elif command -v yum; then
     sudo yum update
     sudo yum -y groupinstall "Development Tools"
@@ -168,7 +173,7 @@ fi
 if [[ -z "$TAR_URL" ]] && [[ -n "$GIT_REPO" ]]; then
     # checkout from git if needed
     git clone "$GIT_REPO" -b "$GIT_REF" --depth 1 ./linux || {
-        echo "Could not clone kernel"; exit 1;
+        echo "Could not clone kernel" 1>&2; exit 1;
     }
 fi
 
@@ -186,7 +191,13 @@ if [[ -n "$PATCH_FILE" ]]; then
         git apply "$patchfile" || { echo "git apply failed: $?"; exit 1; }
     done
 fi
-yes "" | make localmodconfig || { echo "Could not make kernel" ; exit 1; }
+
+readlink -f . > "$CACHE_DIR/linux-src-dir"
+# something is weird with localmodconfig now. Editing the config seems to get wiped?
+# just copy the old config instead.
+sudo cp "/boot/config-$(uname -r)" .config
+sudo -E chown "$USER" .config 
+#yes "" | make oldconfig || { echo "Could not make kernel" ; exit 1; }
 
 sed -i 's/CONFIG_SYSTEM_REVOCATION_LIST/#CONFIG_SYSTEM_REVOCATION_LIST/g' .config \
 || { echo "Config settings for CONFIG_SYSTEM_REVOCATION_LIST failed, ignoring..."; }

@@ -38,6 +38,7 @@ echo "Found library versions:"
 for key in "${!version_checks[@]}"; do
     echo "$key: ${version_checks[$key]}"
 done
+echo "kernel: $(uname -r)"
 echo "----"
 
 # all done
