@@ -6,8 +6,8 @@
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 # dpdkhelp/.dpdkcache
 CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
-[[ -d "$CACHE_DIR" ]] && [[ -f "$CACHE_DIR/vdev_args" ]] || {
-    echo "Error: no vdev_args file was found cached in $CACHE_DIR. Run setup/setup-netvsc-pmd --device eth1[,eth2] first.";
+[[ -d "$CACHE_DIR" ]] && [[ -f "$CACHE_DIR/vdev_arg" ]] || {
+    echo "Error: no vdev_arg file was found cached in $CACHE_DIR. Run setup/setup-netvsc-pmd --device eth1[,eth2] first.";
     exit 1; 
 }
 
@@ -74,7 +74,7 @@ fi
 
 # and splat them into the command
 ulimit -n 204800;
-VDEV_ARG=$(cat "$CACHE_DIR/vdev_args")
+VDEV_ARG=$(cat "$CACHE_DIR/vdev_arg")
 echo "Using $VDEV_ARG as the vdev arg args"
 ## Check number of cores is >= 64
 
