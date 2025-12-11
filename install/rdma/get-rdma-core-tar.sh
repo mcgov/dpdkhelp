@@ -1,4 +1,7 @@
 #! /bin/bash
+
+# author: mamcgove at microsoft aka @mcgov on github
+
 RDMA_CORE_TAR_LINK='https://github.com/linux-rdma/rdma-core/releases/download/v58.0/rdma-core-58.0.tar.gz'
 wget $RDMA_CORE_TAR_LINK \
 || { echo "wget for rdma-core tarball failed!"; exit 1; }

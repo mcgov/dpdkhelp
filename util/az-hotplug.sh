@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# author: @mcgov on github ( mamcgove@microsoft.com )
+
 OPTIONS="g:i:h"
 LONGOPTIONS="rg:,vm-index:,toggle,help,private-ip:,set:"
 # Parse the options

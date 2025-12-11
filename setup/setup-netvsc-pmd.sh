@@ -1,9 +1,11 @@
 #! /bin/bash
 
+# author: mamcgove at microsoft aka @mcgov on github
+
 # this script fetches information about the nics on a device
 # it makes a best effort to infer some info about the mana setup (or mellanox setup)
 # and construct arguments to pass to the EAL arguments of a dpdk application.
-# if you hit any issues, contact mamcgove@microsoft.com
+
 
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 # dpdkhelp/.cache

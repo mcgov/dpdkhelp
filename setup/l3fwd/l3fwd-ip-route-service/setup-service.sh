@@ -19,6 +19,7 @@ sudo chmod =r /etc/systemd/system/l3fwd-ip-route.service || {
     exit 1;
 }
 # reload after creating the service file
+# shellcheck disable=SC2015
 sudo systemctl daemon-reload \
 && sudo systemctl enable l3fwd-ip-route.service \
 && sudo systemctl start l3fwd-ip-route.service \

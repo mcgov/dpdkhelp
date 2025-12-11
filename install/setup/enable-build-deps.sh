@@ -1,5 +1,5 @@
 #! /bin/bash
-# author: mamcgove@microsoft.com aka @mcgov on github
+# author: mamcgove at microsoft aka @mcgov on github
 
 source /etc/os-release
 # shout out to debian for enabling these by default

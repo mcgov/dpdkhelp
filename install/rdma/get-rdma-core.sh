@@ -1,10 +1,13 @@
 #! /bin/bash
+
+# author: mamcgove at microsoft aka @mcgov on github
+
 OPTIONS="v:G:R:P:"
 LONGOPTIONS="version:,rdma-git:,rdma-ref:,patch-url;"
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 # install/.cache/
 CACHE_DIR="$(dirname "$SCRIPT_DIR")/.cache"
-[[ -d "$CACHE_DIR" ]] || mkdir -p cache
+[[ -d "$CACHE_DIR" ]] || mkdir -p "$CACHE_DIR"
 
 # Parse the options
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTIONS --name "$0" -- "$@")

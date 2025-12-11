@@ -1,16 +1,13 @@
 #! /bin/bash
 
-# NOTE: not finished, this script is more for reference.
+# NOTE: not finished, this script is more for reference...
+# marking non-executable
 
 
 # get eth devices on the system, ignoring loopback. 
 # note: not sure if this will include bridges unintentionally.
 # author: @mcgov on github ( mamcgove@microsoft.com )
 
-
-#! /bin/bash
-
-# this script fetches information about master nics
 # we're cool and metal so I'm calling these 'master and puppet' pairs
 
 read -a devices < <(ip --br  link show | grep BROADCAST | awk '{ print $1; }')

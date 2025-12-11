@@ -1,12 +1,17 @@
 #! /bin/bash
 #shellcheck disable=SC1091
 
+# author: mamcgove at microsoft aka @mcgov on github
+
 # setup-ip-route.sh
 # A script to set up the service to persist the l3fwd ip route rules.
 # Users should disable the service if they want to run other tests that need multiple nics.
 TOOLS_DIR="/opt/lsg-tools/mmdpdk"
 #_SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+
 # note that these variables on a given VM are set by the pipeline automation.
+# this script is designed to be run on the target VM, either the sender or receiver
+# (not the forwarder.)
 source "$TOOLS_DIR"/setup/l3fwd-ip-route-service/variables.sh
 
 # check that the required variables are set.

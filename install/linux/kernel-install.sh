@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# author: mamcgove at microsoft aka @mcgov on github
+
 # Script to install dependencies and setup an Azure VM with MANA for DPDK
 # requires a MANA compatible kernel, rdma-core, and dpdk
 # This script is for ubuntu server >= 22.04 and RHEL >= 8.4

@@ -1,5 +1,8 @@
 #! /bin/bash
 #shellcheck disable=SC2002,SC2015
+
+# author: mamcgove at microsoft aka @mcgov on github
+
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 OPTIONS="d:h"
 LONGOPTIONS="dir:,help"

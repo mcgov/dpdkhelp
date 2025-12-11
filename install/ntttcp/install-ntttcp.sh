@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# author: mamcgove at microsoft aka @mcgov on github
+
 NTTTCP_DIR="./ntttcp"
 if [ -d "$NTTTCP_DIR" ]; then
     rm -rf "$NTTTCP_DIR"

@@ -1,4 +1,7 @@
 #! /bin/bash
+
+# author: mamcgove at microsoft aka @mcgov on github
+
 # todo: make this have arguments
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 # install/.cache

@@ -1,4 +1,7 @@
 #! /bin/bash
+
+# author: @mcgov on github ( mamcgove@microsoft.com )
+
 OPTIONS="s:c:h"
 LONGOPTIONS="help,size:,count:"
 

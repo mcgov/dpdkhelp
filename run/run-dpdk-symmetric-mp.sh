@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# author: mamcgove at microsoft aka @mcgov on github
+
 # path helpers
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 # dpdkhelp/.cache
