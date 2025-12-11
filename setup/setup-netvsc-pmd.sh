@@ -8,8 +8,8 @@
 
 
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
-# dpdkhelp/.cache
-CACHE_DIR="$(dirname "$SCRIPT_DIR")/.cache"
+# dpdkhelp/.dpdkcache
+CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
 [[ -d "$CACHE_DIR" ]] || mkdir -p "$CACHE_DIR"
 
 # defaults

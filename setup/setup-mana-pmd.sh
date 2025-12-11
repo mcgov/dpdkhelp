@@ -3,8 +3,8 @@
 # author: mamcgove at microsoft aka @mcgov on github
 
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
-# dpdkhelp/.cache
-CACHE_DIR="$(dirname "$SCRIPT_DIR")/.cache"
+# dpdkhelp/.dpdkcache
+CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
 [[ -d "$CACHE_DIR" ]] || mkdir -p "$CACHE_DIR"
 
 # defaults
@@ -87,7 +87,10 @@ for device in "${devices[@]}"; do
 done
 
 for pci_slot in "${!addresses[@]}"; do
-    vdev_arg+="-a $pci_slot --vdev=$pci_slot,${addresses[$pci_slot]}"
+    # if there's more than one interface, allowlist them
+    [[ "${#addresses[@]}" -gt 1 ]] && vdev_arg+="-a $pci_slot";
+    # and add the mana pmd arg
+    vdev_arg+=" --vdev=$pci_slot,${addresses[$pci_slot]}"
 done
 
 for device in "${devices[@]}"; do

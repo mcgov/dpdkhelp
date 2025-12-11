@@ -1,6 +1,6 @@
 #! /bin/bash
 
-# author: @mcgov on github ( mamcgove@microsoft.com )
+# author: mamcgove at microsoft aka @mcgov on github
 
 OPTIONS="g:i:h"
 LONGOPTIONS="rg:,vm-index:,toggle,help,private-ip:,set:"

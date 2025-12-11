@@ -4,8 +4,8 @@
 
 # todo: make this have arguments
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
-# install/.cache
-CACHE_DIR="$(dirname "$SCRIPT_DIR")/.cache"
+# install/.dpdkcache
+CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
 [[ -d "$CACHE_DIR" ]] || mkdir -p "$CACHE_DIR"
 
 if [[ -z "$DPDK_TAR_LINK" ]]; then

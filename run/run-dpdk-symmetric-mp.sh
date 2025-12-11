@@ -4,8 +4,8 @@
 
 # path helpers
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
-# dpdkhelp/.cache
-CACHE_DIR="$(dirname "$SCRIPT_DIR")/.cache"
+# dpdkhelp/.dpdkcache
+CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
 [[ -d "$CACHE_DIR" ]] && [[ -f "$CACHE_DIR/vdev_args" ]] || {
     echo "Error: no vdev_args file was found cached in $CACHE_DIR. Run setup/setup-netvsc-pmd --device eth1[,eth2] first.";
     exit 1; 
@@ -78,33 +78,34 @@ VDEV_ARG=$(cat "$CACHE_DIR/vdev_args")
 echo "Using $VDEV_ARG as the vdev arg args"
 ## Check number of cores is >= 64
 
+# set this closer to the invocation to avoid asan-izing anything else
+if [[ -n "$USE_ASAN_OPTIONS" ]]; then
+    ASAN_OPTIONS=detect_leaks=false
+    # shellcheck disable=SC2155
+    LD_PRELOAD=$(find /usr/lib -name libasan.so) || echo "Warning, could not find libasan in /usr/lib" 1>&2;
+fi
+
 if [[ $PROC_ID -eq 0 ]] && [[ -n $(lspci -d 1414:00ba:0200) ]]; then
-    sudo /usr/local/share/dpdk/examples/devname/build/devname "$VDEV_ARG"
+    sudo -E ASAN_OPTIONS="$ASAN_OPTIONS" LD_PRELOAD="$LD_PRELOAD" /usr/local/share/dpdk/examples/devname/build/devname "$VDEV_ARG"
     sleep 2
 fi
 ((USE_CORE=PROC_ID*2))
 ((USE_CORE+=3))
 
 # save the command to a repro file
-echo "sudo /usr/local/share/dpdk/examples/multi_process/symmetric_mp/build/symmetric_mp $VDEV_ARG " \
+echo "sudo -E ASAN_OPTIONS=\"$ASAN_OPTIONS\" LD_PRELOAD=\"$LD_PRELOAD\" /usr/local/share/dpdk/examples/multi_process/symmetric_mp/build/symmetric_mp $VDEV_ARG " \
  "-l $USE_CORE -n 4 --proc-type auto " \
  "-- -p $PORT_MASK --num-procs 2 " \
  "--proc-id $PROC_ID" > ~/repro_symmetric_mp_"$PROC_ID".sh
 
-# set this closer to the invocation to avoid asan-izing anything else
-if [[ -n "$USE_ASAN_OPTIONS" ]]; then
-    export ASAN_OPTIONS="detect_leaks=false";
-    # shellcheck disable=SC2155
-    export LD_PRELOAD=$(find /usr/lib -name libasan.so) || echo "Warning, could not find libasan in /usr/lib" 1>&2;
-fi
 # and run it
 if [[ $TIMEOUT -gt 0 ]]; then
-    sudo --preserve-env timeout --preserve-status "$TIMEOUT" /usr/local/share/dpdk/examples/multi_process/symmetric_mp/build/symmetric_mp "$VDEV_ARG" \
+    sudo --preserve-env timeout --preserve-status "$TIMEOUT" ASAN_OPTIONS="$ASAN_OPTIONS" LD_PRELOAD="$LD_PRELOAD" /usr/local/share/dpdk/examples/multi_process/symmetric_mp/build/symmetric_mp "$VDEV_ARG" \
         -l $USE_CORE -n 4 --proc-type auto \
         -- -p "$PORT_MASK" --num-procs 2 \
         --proc-id "$PROC_ID"
 else
-    sudo --preserve-env /usr/local/share/dpdk/examples/multi_process/symmetric_mp/build/symmetric_mp $VDEV_ARG \
+    sudo --preserve-env ASAN_OPTIONS="$ASAN_OPTIONS" LD_PRELOAD="$LD_PRELOAD" /usr/local/share/dpdk/examples/multi_process/symmetric_mp/build/symmetric_mp $VDEV_ARG \
         -l $USE_CORE -n 4 --proc-type auto \
         -- -p "$PORT_MASK" --num-procs 2 \
         --proc-id "$PROC_ID"

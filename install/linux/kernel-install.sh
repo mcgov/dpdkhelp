@@ -9,8 +9,8 @@
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 #../setup
 SETUP_DIR="$(dirname "$SCRIPT_DIR"))/setup"
-# install/.cache
-CACHE_DIR="$(dirname "$SCRIPT_DIR")/.cache"
+# install/.dpdkcache
+CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
 [[ -d "$CACHE_DIR" ]] || mkdir -p "$CACHE_DIR"
 
 OPTIONS="P:G:T:R:vhk"

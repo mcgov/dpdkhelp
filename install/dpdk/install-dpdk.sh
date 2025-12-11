@@ -5,7 +5,7 @@
 
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 OPTIONS="d:h"
-LONGOPTIONS="dir:,help"
+LONGOPTIONS="dir:,build-only,help,asan"
 
 # Parse the options
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTIONS --name "$0" -- "$@")
@@ -19,6 +19,8 @@ fi
 eval set -- "$PARSED"
 # Initialize variables
 DPDK_DIR=""
+INSTALL_DPDK='true'
+
 # Process the options
 while true; do
     case "$1" in
@@ -36,6 +38,14 @@ while true; do
             }
             shift 2
             ;;
+        --build-only)
+            INSTALL_DPDK=""
+            shift
+            ;;
+        --asan)
+            ENABLE_ASAN='true'
+            shift
+            ;;
         --)
             shift
             break
@@ -48,7 +58,7 @@ while true; do
 done
 
 [[ "$1" == "--debug" ]] && BUILD_TYPE_ARG=( "--buildtype=debug" )
-# "-Db_sanitize=address" leaving this off for now
+[[ -n "$ENABLE_ASAN" ]] && BUILD_TYPE_ARG+=( "-Db_sanitize=address" )
 
 # this is ugly, but we need to patch symmetric_mp
 cp "$SCRIPT_DIR"/symmetric_mp_main.c ./examples/multi_process/symmetric_mp/main.c \
@@ -58,7 +68,8 @@ cp "$SCRIPT_DIR"/symmetric_mp_main.c ./examples/multi_process/symmetric_mp/main.
     exit 1;
 }
 echo "export ASAN_SYMBOLIZER_PATH=\$( which llvm-symbolizer )" >> ~/.bashrc
-CC=clang CXX=clang++ meson setup -Dexamples=l3fwd,multi_process/symmetric_mp,devname \
+# CC=clang CXX=clang++ 
+meson setup -Dexamples=l3fwd,multi_process/symmetric_mp,devname \
     -Denable_drivers=net/mana,*/mlx*,bus/vmbus,bus/vdev,net/netvsc,net/ring,net/virtio,net/bonding,bus/auxiliary,common/*,net/vdev_netvsc \
     -Denable_apps=app/test-pmd -Ddisable_drivers=net/failsafe -Dmax_lcores=192 --buildtype=debug "${BUILD_TYPE_ARG[@]}" build \
     || { echo  "meson setup failed!"; exit 1; }
@@ -83,8 +94,10 @@ cd build \
 ninja \
 || { echo "ninja build failed!"; exit 1; }
 
-sudo ninja install \
-|| { echo "ninja install failed!"; exit 1; }
+if [[ -n "$INSTALL_DPDK" ]]; then
+    sudo ninja install \
+    || { echo "ninja install failed!"; exit 1; }
+fi
 
 sudo cp "$SCRIPT_DIR"/symmetric_mp_main.c /usr/local/share/dpdk/examples/multi_process/symmetric_mp/main.c \
 || { 

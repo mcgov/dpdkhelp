@@ -5,8 +5,8 @@
 OPTIONS="v:G:R:P:"
 LONGOPTIONS="version:,rdma-git:,rdma-ref:,patch-url;"
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
-# install/.cache/
-CACHE_DIR="$(dirname "$SCRIPT_DIR")/.cache"
+# install/.dpdkcache/
+CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
 [[ -d "$CACHE_DIR" ]] || mkdir -p "$CACHE_DIR"
 
 # Parse the options
