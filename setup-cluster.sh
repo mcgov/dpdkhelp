@@ -4,7 +4,7 @@
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 ssh_key_path="$HOME/.ssh/id_rsa"
 OPTIONS="i:u:d"
-LONGOPTIONS="key:,hosts:,install-dpdk,install-rdma-core,help"
+LONGOPTIONS="key:,hosts:,install-dpdk,install-rdma-core,help,install-deps,install-kernel"
 # Parse the options
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTIONS --name "$0" -- "$@")
 # shellcheck disable=SC2181
@@ -16,7 +16,7 @@ eval set -- "$PARSED"
 while true; do
     case "$1" in
         -h|--help)
-            echo "Usage: usage: $0 [--help] [ -i \$key_path] [ --user \$user ] --hosts user@host[,user@host2,user2@host3,...]"
+            echo "Usage: usage: $0 [--help] [ -i \$key_path] --hosts user@host[,user@host2,user2@host3,...] [--install-dpdk] [--install-rdma-core]"
             exit 0
             ;;
         -i|--key)
@@ -30,6 +30,14 @@ while true; do
         --install-rdma-core)
             INSTALL_RDMA_CORE="true"
             shift
+            ;;
+        --install-deps)
+            INSTALL_DEPS="true"
+            shift
+            ;;
+        --install-kernel)
+            INSTALL_KERNEL="true"
+            shiftfire
             ;;
         --install-dpdk)
             INSTALL_DPDK="true"
@@ -46,6 +54,10 @@ while true; do
 done
 [[ -n "$hosts" ]] || { echo "Error, provide --hosts argument"; exit 1; }
 
+# set some defaults but allow override via env
+[[ -z "$RDMA_VERSION" ]] && RDMA_VERSION="59.0"
+[[ -z "$DPDK_VERSION" ]] && DPDK_VERSION="v25.07"
+
 IFS=',' read -r -a hosts_array <<< "$hosts"
 for host in "${hosts_array[@]}"; do 
     IFS='@' read -r -a addr_info <<< "$host";
@@ -58,10 +70,15 @@ for pid in "${pids[@]}"; do
     wait "$pid" || { wait; echo "ssh $pid failed" ; exit 1; }
 done;
 
-"$SCRIPT_DIR/mssh" -i "$ssh_key_path" --hosts "$hosts" -- 'dpdkhelp/install/setup/enable-build-deps.sh && dpdkhelp/install/setup/install-build-deps.sh' || {
-    echo "could not enable build-deps."; exit 1;
-}
+if [[ -n "$INSTALL_DEPS" ]]; then
+    "$SCRIPT_DIR/mssh" -i "$ssh_key_path" --hosts "$hosts" -- 'dpdkhelp/install/setup/enable-build-deps.sh && dpdkhelp/install/setup/install-build-deps.sh' || {
+        echo "could not enable build-deps."; exit 1;
+    }
+fi
 
+if [[ -n "$INSTALL_KERNEL" ]]; then
+    "$SCRIPT_DIR"/mssh --hosts "$hosts" -- dpdkhelp/install/linux/kernel-install.sh --git git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git --ref v6.18
+fi
 
 [[ -n "$INSTALL_RDMA_CORE" ]] && {
 
@@ -69,11 +86,9 @@ done;
         echo "could not fetch rdma-core source."; exit 1;
     }
 
-    "$SCRIPT_DIR/mssh" -i "$ssh_key_path" --hosts "$hosts" -- dpdkhelp/install/rdma/get-rdma-core-tar.sh || {
-        echo "could not fetch rdma-core source."; exit 1;
-    }
     # shellcheck disable=SC2016
-    "$SCRIPT_DIR/mssh" -i "$ssh_key_path" --hosts "$hosts" -- 'cd rdma-core-58.0 && $HOME/dpdkhelp/install/rdma/install-rdma-core.sh' || {
+    "$SCRIPT_DIR/mssh" -i "$ssh_key_path" --hosts "$hosts" -- \
+        "cd \$(cat dpdkhelp/install/.dpdkcache/rdma_src_dir) && RDMA_VERSION='$RDMA_VERSION' ../dpdkhelp/install/rdma/install-rdma-core.sh" || {
         echo "could not install rdma-core."; exit 1;
     }
     "$SCRIPT_DIR/mssh" -i "$ssh_key_path" --hosts "$hosts" -- 'sudo reboot' ;
@@ -85,7 +100,7 @@ until "$SCRIPT_DIR/mssh" -i "$ssh_key_path" --hosts "$hosts" -- 'true' 2> /dev/n
 done
 
 [[ -n "$INSTALL_DPDK" ]] && {
-    "$SCRIPT_DIR/mssh" -i "$ssh_key_path" --hosts "$hosts" -- 'dpdkhelp/install/dpdk/get-dpdk-git.sh --ref v25.03' || {
+    "$SCRIPT_DIR/mssh" -i "$ssh_key_path" --hosts "$hosts" -- "dpdkhelp/install/dpdk/get-dpdk-git.sh --ref $DPDK_VERSION" || {
         echo "could not fetch dpdk source."; exit 1;
     }
     # shellcheck disable=SC2016

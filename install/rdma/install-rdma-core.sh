@@ -1,6 +1,10 @@
 #! /bin/bash
 # SPDX-License-Identifier: MIT
-# DEBIAN_FRONTEND=noninteractive sudo apt install -y rdma-core && exit 0;
+# script dir
+SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
+# install/.dpdkcache
+CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
+
 OPTIONS="h"
 LONGOPTIONS="32bit,help"
 # Parse the options

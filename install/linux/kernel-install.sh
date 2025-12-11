@@ -8,13 +8,13 @@
 
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 #../setup
-SETUP_DIR="$(dirname "$SCRIPT_DIR"))/setup"
+SETUP_DIR="$(dirname "$SCRIPT_DIR")/setup"
 # install/.dpdkcache
 CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
 [[ -d "$CACHE_DIR" ]] || mkdir -p "$CACHE_DIR"
 
 OPTIONS="P:G:T:R:vhk"
-LONGOPTIONS="patch:,git:,tar-url:,git-ref:,verbose,help,kasan,add-config:"
+LONGOPTIONS="patch:,git:,tar-url:,ref:,verbose,help,kasan,add-config:"
 
 # Parse the options
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTIONS --name "$0" -- "$@")
@@ -138,6 +138,7 @@ else
     echo "unsupported os, exiting..."
     exit 1;
 fi
+mkdir -p /tmp/linux && cd /tmp/linux || { echo "error: could not cd to /tmp/linux"; exit 1; }
 LINUX_SOURCE_FOLDER="./linux"
 # pick Linux repo and tag to build, 6.4 release has all the vpci and mana bits.
 if [[ -n "$TAR_URL" ]]; then

@@ -41,8 +41,8 @@ while true; do
             ;;
         -m|--mode)
             export FWDMODE="$2";
-            if [[ "$FWDMODE" != "rxonly" ]] && [[ "$FWDMODE" != "txonly" ]]; then
-                echo "Error: mode must be rxonly or txonly"
+            if [[ "$FWDMODE" != "rxonly" ]] && [[ "$FWDMODE" != "txonly" ]] && [[ "$FWDMODE" != "5tswap" ]]; then
+                echo "Error: mode must be rxonly, txonly, or 5tswap"
                 exit 1
             fi
             shift 2

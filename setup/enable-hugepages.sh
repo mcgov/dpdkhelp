@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: MIT
 # author: @mcgov on github ( mamcgove@microsoft.com )
 
-OPTIONS="s:c:h"
-LONGOPTIONS="help,size:,count:"
-
+OPTIONS="s:c:hN:"
+LONGOPTIONS="help,size:,count:,node:"
+node_id="*"
 # Parse the options
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTIONS --name "$0" -- "$@")
 # shellcheck disable=SC2181
@@ -27,6 +27,10 @@ while true; do
             hugepage_count="$2"
             shift 2
             ;;
+        -N|--node)
+            node_id="$2"
+            shift 2
+            ;;
         --)
             break
             ;;
@@ -44,16 +48,16 @@ fi
 case "$hugepage_size" in
     2M)
         
-        hugepage_path="/sys/devices/system/node/node*/hugepages/hugepages-2048kB/nr_hugepages"
+        hugepage_path="/sys/devices/system/node/node$node_id/hugepages/hugepages-2048kB/nr_hugepages"
         [[ -n "$hugepage_count" ]] || hugepage_count=1024
         ;;
     1G)
         if ! [[ -d /dev/hugepages1G ]]; then
-            mkdir /dev/hugepages1G \
-            && mount -t hugetlbfs -o pagesize=1G none /dev/hugepages1G \
+            sudo mkdir /dev/hugepages1G \
+            && sudo mount -t hugetlbfs -o pagesize=1G none /dev/hugepages1G \
             || { echo "Failed to mount 1G hugepages"; exit 1; }
         fi
-        hugepage_path="/sys/devices/system/node/node*/hugepages/hugepages-1048576kB/nr_hugepages"
+        hugepage_path="/sys/devices/system/node/node$node_id/hugepages/hugepages-1048576kB/nr_hugepages"
         [[ -n "$hugepage_count" ]] || hugepage_count=1
         ;;
     *)

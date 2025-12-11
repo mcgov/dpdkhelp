@@ -48,6 +48,6 @@ while true; do
     esac
 done
 
-"$SCRIPT_DIR"/enable_hugepages.sh && "$SCRIPT_DIR"/setup-"$pmd"-pmd.sh --device "$devices"
+"$SCRIPT_DIR"/enable-hugepages.sh -c 16 -s 1G --node 0 && "$SCRIPT_DIR"/setup-"$pmd"-pmd.sh --device "$devices"
 
 exit $?
