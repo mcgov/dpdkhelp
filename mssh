@@ -4,8 +4,9 @@
 
 host_list=()
 ((failed=0))
+ssh_key_path="$HOME/.ssh/id_rsa"
 # run ssh command on multiple hosts, bash only
-OPTIONS="h:d:"
+OPTIONS="h:d:i:"
 LONGOPTIONS="help,hosts:"
 
 # Parse the options
@@ -20,7 +21,7 @@ eval set -- "$PARSED"
 while true; do
     case "$1" in
         -h|--help)
-            echo "Usage: $0 --hosts user@host,user@host2 -- commands "
+            echo "Usage: $0 [-i \$ssh_key_path ] --hosts user@host,user@host2 -- commands "
             exit 0
             ;;
         -d|--hosts)
@@ -35,6 +36,10 @@ while true; do
             fi
             shift 2
             ;;
+        -i)
+            ssh_key_path="$2"
+            shift 2
+            ;;
         --)
             break
             ;;
@@ -46,7 +51,7 @@ while true; do
 done
 pids=()
 for host in "${host_list[@]}" ; do
-    ssh -n "$host" "$@" &
+    ssh -i "$ssh_key_path" -n "$host" "$@" &
     pids+=("$!")
 done
 for pid in "${pids[@]}"; do 
