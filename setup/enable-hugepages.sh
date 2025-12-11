@@ -1,5 +1,5 @@
 #! /bin/bash
-
+# SPDX-License-Identifier: MIT
 # author: @mcgov on github ( mamcgove@microsoft.com )
 
 OPTIONS="s:c:h"

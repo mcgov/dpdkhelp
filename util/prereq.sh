@@ -1,5 +1,5 @@
 #! /bin/bash
-
+# SPDX-License-Identifier: MIT
 # author: mamcgove at microsoft aka @mcgov on github
 
 #shellcheck disable=SC2002,SC2015

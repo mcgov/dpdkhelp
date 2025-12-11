@@ -1,4 +1,5 @@
 #! /bin/bash
+# SPDX-License-Identifier: MIT
 # author: mamcgove at microsoft aka @mcgov on github
 # NOTE: not finished, this script is more for reference...
 # marking non-executable

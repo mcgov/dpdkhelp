@@ -1,5 +1,5 @@
 #! /bin/bash
-
+# SPDX-License-Identifier: MIT
 # quick setup for a cluster
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 ssh_key_path="$HOME/.ssh/id_rsa"

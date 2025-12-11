@@ -1,4 +1,5 @@
 #! /bin/bash
+# SPDX-License-Identifier: MIT
 # author: mamcgove @microsoft.com
 
 # run a packet-per-second test with dpdk-testpmd.

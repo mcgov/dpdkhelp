@@ -1,5 +1,5 @@
 #! /bin/bash
-
+# SPDX-License-Identifier: MIT
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 
 L3FWD_IP_ROUTE_SERVICE_FILE="/etc/systemd/system/l3fwd-ip-route.service"

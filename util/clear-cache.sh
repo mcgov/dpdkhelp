@@ -1,5 +1,5 @@
 #! /bin/bash
-
+# SPDX-License-Identifier: MIT
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")
 # dpdkhelp/.dpdkcache
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"

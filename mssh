@@ -1,5 +1,5 @@
 #! /bin/bash
-
+# SPDX-License-Identifier: MIT
 # author: mamcgove aka mcgov on github
 
 host_list=()

@@ -1,4 +1,5 @@
 #! /bin/bash
+# SPDX-License-Identifier: MIT
 # DEBIAN_FRONTEND=noninteractive sudo apt install -y rdma-core && exit 0;
 OPTIONS="h"
 LONGOPTIONS="32bit,help"

@@ -1,5 +1,5 @@
 #! /bin/bash
-
+# SPDX-License-Identifier: MIT
 # author: mamcgove at microsoft aka @mcgov on github
 
 RDMA_CORE_TAR_LINK='https://github.com/linux-rdma/rdma-core/releases/download/v58.0/rdma-core-58.0.tar.gz'

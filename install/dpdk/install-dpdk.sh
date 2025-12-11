@@ -1,6 +1,6 @@
 #! /bin/bash
-#shellcheck disable=SC2002,SC2015
-
+# shellcheck disable=SC2002,SC2015
+# SPDX-License-Identifier: MIT
 # author: mamcgove at microsoft aka @mcgov on github
 
 SCRIPT_DIR=$(readlink -f "$(dirname "$0")")

@@ -1,5 +1,5 @@
 #! /bin/bash
-
+# SPDX-License-Identifier: MIT
 # setup/check_versions.sh
 # check for rdma-core and dpdk, then
 # prompt user to install one or both in a specific order.

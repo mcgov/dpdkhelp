@@ -1,6 +1,6 @@
 #! /bin/bash
 #shellcheck disable=SC1091
-
+# SPDX-License-Identifier: MIT
 # author: mamcgove at microsoft aka @mcgov on github
 
 # setup-ip-route.sh
