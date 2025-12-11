@@ -6,7 +6,7 @@
 
 # NOTE: not finished
 
-read -a devices < <(ip --br  link show | grep BROADCAST | awk '{ print $1;}')
+read -a devices < <(ip --br  link show | grep BROADCAST | awk '{ print $1; }')
 
 # track nic associations
 declare -A puppets
@@ -20,3 +20,5 @@ for master in "${!puppets[@]}"; do
     echo "$master -> ${puppets["$master"]}"
 done
     
+# get device info for specific pci device (includes driver, -d 1414:00ba:0200 for mana only ) lspci -k -s $slot 
+# basename $(readlink ls /sys/class/net/eth0/device/driver)
