@@ -23,7 +23,7 @@ eval set -- "$PARSED"
 # Initialize variables
 DPDK_DIR=""
 INSTALL_DPDK='true'
-
+MAX_LCORES=128
 # Process the options
 while true; do
     case "$1" in
@@ -48,6 +48,10 @@ while true; do
         --asan)
             ENABLE_ASAN='true'
             shift
+            ;;
+        --max-lcores)
+            MAX_LCORES="$2"
+            shift 2
             ;;
         --)
             shift
@@ -75,13 +79,15 @@ echo "export ASAN_SYMBOLIZER_PATH=\$( which llvm-symbolizer )" >> ~/.bashrc
 # set the 'max cores' build argument for DPDK.
 # doing this dynamically is a little weird, the max by default is 128
 # but we now have sizes with > 300 cores and the max in dpdk is 512
-# I'm leaving this code here.... but whatever let's just use 512.
+# I'm leaving this code here.... but... apparently setting this higher 
+# reduces the pps for some reason
+# even if the cores aren't in use.
 # max_cores=$(lscpu | grep -P '^CPU\(s\):' | awk ' { print $2 } ')
 # [[ "$max_cores" -gt 128 ]] &&  max_cores=$(ceilpow2 "$max_cores") || max_cores=256
-max_cores=512
+
 meson setup -Dexamples=l3fwd,multi_process/symmetric_mp,devname \
     -Denable_drivers=net/mana,*/mlx*,bus/vmbus,bus/vdev,net/netvsc,net/ring,net/virtio,net/bonding,bus/auxiliary,common/*,net/vdev_netvsc \
-    -Denable_apps=app/test-pmd -Ddisable_drivers=net/failsafe -Dmax_lcores="$max_cores" --buildtype=debug "${BUILD_TYPE_ARG[@]}" build \
+    -Denable_apps=app/test-pmd -Ddisable_drivers=net/failsafe -Dmax_lcores="$MAX_LCORES" --buildtype=debug "${BUILD_TYPE_ARG[@]}" build \
     || { echo  "meson setup failed!"; exit 1; }
 
 for libdir in /lib/clang/*/lib/linux; do

@@ -92,7 +92,7 @@ fi
         echo "could not install rdma-core."; exit 1;
     }
     "$SCRIPT_DIR/mssh" -i "$ssh_key_path" --hosts "$hosts" -- 'sudo reboot' ;
-    echo "waiting for reboot..."
+    echo "waiting for reboot..."ho
     sleep 10 ;
 }
 until "$SCRIPT_DIR/mssh" -i "$ssh_key_path" --hosts "$hosts" -- 'true' 2> /dev/null; do

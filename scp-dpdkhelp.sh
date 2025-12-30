@@ -67,8 +67,10 @@ ssh -i "$ssh_key_path" "$username"@"$dest_ip" 'mkdir -p dpdkhelp' || {
 }
 
 for thing in "$SCRIPT_DIR"/*; do
+    [[ -d "$thing" ]] || continue;
     scp -r -i "$ssh_key_path" "$thing" "$username@$dest_ip:dpdkhelp/" &
     jobs["$!"]="$thing";
+    sleep 1;
 done
 
 for pid in "${!jobs[@]}"; do
