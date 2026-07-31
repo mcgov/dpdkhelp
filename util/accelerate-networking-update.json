@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "nics": {
+      "type": "array",
+      "metadata": {
+        "description": "Full NIC bodies to redeploy: [{ name, location, tags, extendedLocation, properties }]. Everything except enableAcceleratedNetworking is passed through unchanged."
+      }
+    },
+    "enableAcceleratedNetworking": {
+      "type": "bool",
+      "defaultValue": true
+    }
+  },
+  "resources": [
+    {
+      "copy": {
+        "name": "nicLoop",
+        "count": "[length(parameters('nics'))]"
+      },
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-04-01",
+      "name": "[parameters('nics')[copyIndex()].name]",
+      "location": "[parameters('nics')[copyIndex()].location]",
+      "tags": "[if(contains(parameters('nics')[copyIndex()], 'tags'), parameters('nics')[copyIndex()].tags, json('null'))]",
+      "extendedLocation": "[if(contains(parameters('nics')[copyIndex()], 'extendedLocation'), parameters('nics')[copyIndex()].extendedLocation, json('null'))]",
+      "properties": "[union(parameters('nics')[copyIndex()].properties, createObject('enableAcceleratedNetworking', parameters('enableAcceleratedNetworking')))]"
+    }
+  ]
+}
