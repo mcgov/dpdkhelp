@@ -98,9 +98,7 @@ function get_cores_for_build {
     echo "$CORES"
     return 0
 }
-echo "STOP: did you update the kernel to latest? for ubuntu install and upgrade:"
-echo "linux-azure linux-modules-extra-azure"
-sleep 10
+
 
 # NOTE for ubuntu 22.04:
 # linux-azure and linux-modules-extra-azure installs 6.2
@@ -118,7 +116,7 @@ if command -v apt; then
     # shellcheck disable=SC2015
     "$SETUP_DIR/enable-build-deps.sh" && \
         sudo apt-get build-dep -y -q dpdk rdma-core && \
-        sudo apt install flex bison libssl-dev libelf-dev python3-pip dwarves libnuma-dev libpcap-dev \
+        sudo apt install flex bison libssl-dev libelf-dev python3-pip dwarves libnuma-dev libpcap-dev libdw-dev dwarves elfutils \
     || { 
         echo "could not install dependencies"; exit 1;
     }

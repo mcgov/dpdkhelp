@@ -203,7 +203,10 @@ fi
 # write the command out to a file and run that
 # to avoid weird parsing of the command in the event the last arg is empty
 echo "#! /bin/sh" > ./rerun-dpdk-testpmd.sh
-echo "$RUN_DPDK_CMD" >> ./rerun-dpdk-testpmd.sh
+echo "pkg-config --modversion libdpdk" >> ./rerun-dpdk-testpmd.sh
+echo "pkf-config --modversion libibverbs" >> ./rerun-dpdk-testpmd.sh
+uname -r >> ./rerun-dpdk-testpmd.sh
+echo "$RUN_DPDK_CMD 2>&1 | tee last-dpdk-log.txt" >> ./rerun-dpdk-testpmd.sh
 echo 'exit $?' >> ./rerun-dpdk-testpmd.sh
 sudo chmod +x ./rerun-dpdk-testpmd.sh
 
