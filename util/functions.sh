@@ -106,3 +106,23 @@ function ip4_in_cidr() {
     mask=$(( prefix == 0 ? 0 : (0xFFFFFFFF << (32 - prefix)) & 0xFFFFFFFF ))
     (( (ip_int & mask) == (net_int & mask) ))
 }
+function int_to_ip4() {
+    echo "$(( ($1 >> 24) & 255 )).$(( ($1 >> 16) & 255 )).$(( ($1 >> 8) & 255 )).$(( $1 & 255 ))"
+}
+function ip4_network() {
+    # usage: ip4_network <ip>/<prefix> ; prints the network address in cidr form (ex: 10.0.1.0/24)
+    local ip_int prefix mask
+    ip_int=$(ip4_to_int "${1%/*}") || return 1
+    prefix="${1#*/}"
+    [[ "$prefix" =~ ^[0-9]+$ ]] && ((prefix <= 32)) || return 1
+    mask=$(( prefix == 0 ? 0 : (0xFFFFFFFF << (32 - prefix)) & 0xFFFFFFFF ))
+    echo "$(int_to_ip4 $(( ip_int & mask )))/$prefix"
+}
+function ip4_to_ipv6_lpm() {
+    # usage: ip4_to_ipv6_lpm <ip> ; ipv4-mapped ipv6 /56 prefix for the ip's /24, for l3fwd ipv6 rules.
+    # dpdk doesn't accept shortened ipv6 addresses.
+    local a b c d
+    ip4_to_int "$1" > /dev/null || return 1
+    IFS=. read -r a b c d <<< "$1"
+    printf '0000:0000:0000:0000:0000:FFFF:%02x%02x:%02x00/56\n' "$a" "$b" "$c"
+}

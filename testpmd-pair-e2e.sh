@@ -36,7 +36,7 @@ while true; do
             echo "  deploy:  [--vm-size <size>] [--data-nics <n>] [--admin-user <user>] [--ssh-source <cidr>]"
             echo "           [--nsg-rules <json|file>] [--rg-tag key=value]... [--avset-tag key=value]... [--avset-properties <json|file>]"
             echo "  setup:   [--install-rdma-core] [--install-kernel]  (dpdk and deps are always installed)"
-            echo "  run:     [--pmd netvsc|mana] [-t|--timeout <seconds>] [--log-dir <dir>] [-- <run-dpdk-testpmd.sh args>]"
+            echo "  run:     [--pmd auto|netvsc|mana] [-t|--timeout <seconds>] [--log-dir <dir>] [-- <run-dpdk-testpmd.sh args>]"
             echo "  --keep: keep the resource group and VMs after the test"
             echo "  --keep-on-failure: keep them only if a step fails"
             echo "  the resource group defaults to \$USER-dpdk-<timestamp>, and is never deleted if it already existed."

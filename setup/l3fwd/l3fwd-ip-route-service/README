@@ -1,5 +1,7 @@
 # l3fwd
 
+NOTE: this is the older pipeline service. For the deploy/run scripts in this repo, see the l3fwd section of the top level README.
+
 ## description
 This folder contains a directory with scripts to set up a systemd service for l3fwd testing.
 

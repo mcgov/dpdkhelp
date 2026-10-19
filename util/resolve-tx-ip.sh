@@ -74,45 +74,13 @@ done
     exit 1
 }
 
-if [[ -n "$DEVNAME_OUTPUT_FILE" ]]; then
-    DEVNAME_OUTPUT=$(cat "$DEVNAME_OUTPUT_FILE") || exit 1
-else
-    if [[ -z "$DEVNAME_BIN" ]]; then
-        # install-dpdk.sh builds it under the installed examples (only added to PATH in .bashrc),
-        # a meson build with -Dexamples=devname leaves it in the dpdk build dir
-        for candidate in "$(command -v dpdk-devname)" "$(command -v devname)" \
-            /usr/local/bin/dpdk-devname \
-            /usr/local/share/dpdk/examples/devname/build/devname \
-            "$HOME/dpdk/build/examples/dpdk-devname"; do
-            [[ -n "$candidate" ]] && [[ -x "$candidate" ]] && { DEVNAME_BIN="$candidate"; break; }
-        done
-    fi
-    [[ -n "$DEVNAME_BIN" ]] && [[ -x "$DEVNAME_BIN" ]] || {
-        damn "Error: dpdk-devname not found, install from github.com/mcgov/devname or pass --devname"
-        exit 1
-    }
-    if [[ "${#EAL_ARGS[@]}" -eq 0 ]] && [[ -f "$CACHE_DIR/vdev_arg" ]]; then
-        # vdev_arg is a space separated arg string, split it intentionally
-        read -r -a EAL_ARGS < "$CACHE_DIR/vdev_arg"
-    fi
-    DEVNAME_OUTPUT=$(sudo "$DEVNAME_BIN" "${EAL_ARGS[@]}" 2>&1)
-fi
+PORTS_ARGS=()
+[[ -n "$DEVNAME_BIN" ]] && PORTS_ARGS+=( --devname "$DEVNAME_BIN" )
+[[ -n "$DEVNAME_OUTPUT_FILE" ]] && PORTS_ARGS+=( --devname-output "$DEVNAME_OUTPUT_FILE" )
+PORT_LIST=$("$SCRIPT_DIR/dpdk-ports.sh" "${PORTS_ARGS[@]}" -- "${EAL_ARGS[@]}") || exit 1
 
 ((resolved=0))
-while read -r line; do
-    port=""; owner_id=""; mac=""
-    for field in $line; do
-        case "$field" in
-            port=*) port="${field#port=}" ;;
-            owner_id=*) owner_id="${field#owner_id=}" ;;
-            macaddr=*) mac="${field#macaddr=}" ;;
-        esac
-    done
-    # owned ports (ex: mana ports under a netvsc port) aren't used for forwarding by testpmd
-    if [[ -n "$owner_id" ]] && [[ $((owner_id)) -ne 0 ]]; then
-        continue
-    fi
-    mac="${mac,,}"
+while read -r port mac; do
     cidrs=$(awk -v mac="$mac" 'tolower($1) == mac { print $3 }' "$NIC_INFO")
     if [[ -z "$cidrs" ]] || [[ "$cidrs" == "-" ]]; then
         damn "Warning: no cached ip for port $port ($mac), skipping"
@@ -134,11 +102,11 @@ while read -r line; do
     fi
     echo "$match"
     ((resolved++))
-done < <(grep 'dpdk-devname found port=' <<< "$DEVNAME_OUTPUT")
+done <<< "$PORT_LIST"
 
 if [[ "$resolved" -eq 0 ]]; then
-    damn "Error: could not resolve any ports. dpdk-devname output:"
-    damn "$DEVNAME_OUTPUT"
+    damn "Error: could not resolve any ports. dpdk ports (port mac):"
+    damn "$PORT_LIST"
     exit 1
 fi
 exit 0

@@ -2,8 +2,11 @@
 # SPDX-License-Identifier: MIT
 # author: mamcgove at microsoft aka @mcgov on github
 
-# deploy main.bicep with az cli: creates the resource group and two VMs with data nics for dpdk testing.
-# usage: deploy.sh -g <resource-group> -l <region> [--vm-size <size>] [--admin-user <user>] [--ssh-key <pubkey path>]
+# deploy a bicep template with az cli: creates the resource group and the VMs for dpdk testing.
+#   main.bicep (default): two VMs with data nics for testpmd
+#   l3fwd.bicep (--template l3fwd): sender, forwarder and receiver VMs for l3fwd
+# usage: deploy.sh -g <resource-group> -l <region> [--template main|l3fwd|<file>] [--vm-size <size>]
+#            [--admin-user <user>] [--ssh-key <pubkey path>] [--param name=value]...
 #            [--data-nics <n>] [--name-prefix <prefix>] [--ssh-source <cidr>]
 #            [--nsg-rules <json array | json file>] [--rg-tag key=value]... [--avset-tag key=value]...
 #            [--avset-properties <json object | json file>] [--output-file <path>]
@@ -51,7 +54,7 @@ if [[ -n "$AVSET_PROPERTIES_FILE" ]]; then
 fi
 
 OPTIONS="hg:l:"
-LONGOPTIONS="help,resource-group:,location:,vm-size:,admin-user:,ssh-key:,data-nics:,name-prefix:,ssh-source:,nsg-rules:,rg-tag:,avset-tag:,avset-properties:,output-file:"
+LONGOPTIONS="help,resource-group:,location:,template:,param:,vm-size:,admin-user:,ssh-key:,data-nics:,name-prefix:,ssh-source:,nsg-rules:,rg-tag:,avset-tag:,avset-properties:,output-file:"
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTIONS --name "$0" -- "$@")
 # shellcheck disable=SC2181
 if [[ $? -ne 0 ]]; then
@@ -64,6 +67,10 @@ while true; do
             echo "Usage: $0 -g|--resource-group <name> -l|--location <region> [--vm-size <size>]"
             echo "          [--admin-user <user>] [--ssh-key <pubkey path>] [--data-nics <n>] [--name-prefix <prefix>]"
             echo "          [--ssh-source <cidr>] [--nsg-rules <json array|file>] [--rg-tag key=value]... [--avset-tag key=value]..."
+            echo "          [--template main|l3fwd|<file.bicep>] [--param name=value]..."
+            echo "  --template: main.bicep (default, testpmd pair) or l3fwd.bicep (sender/forwarder/receiver)"
+            echo "  --param: set any template parameter, the value is used as json if it parses as a number,"
+            echo "      bool, object or array, otherwise as a string. ex: --param subnetPairs=2"
             echo "  --admin-user defaults to \$USER ($USER), --ssh-key defaults to ~/.ssh/id_rsa.pub"
             echo "  --nsg-rules: extra inbound rules (priority 101-200), ex:"
             echo "      '[{\"name\":\"allow-iperf\",\"destinationPortRange\":\"5201\",\"protocol\":\"Tcp\"}]'"
@@ -82,6 +89,25 @@ while true; do
             ;;
         -l|--location)
             LOCATION="$2"
+            shift 2
+            ;;
+        --template)
+            case "$2" in
+                main|l3fwd) TEMPLATE="$SCRIPT_DIR/$2.bicep" ;;
+                *) TEMPLATE="$2" ;;
+            esac
+            [[ -f "$TEMPLATE" ]] || { echo "Error: template $TEMPLATE not found"; exit 1; }
+            TEMPLATE=$(readlink -f "$TEMPLATE")
+            shift 2
+            ;;
+        --param)
+            [[ "$2" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || { echo "Error: --param must be name=value"; exit 1; }
+            param_value="${2#*=}"
+            if [[ "$param_value" =~ ^(-?[0-9]+|true|false|null)$ ]] || [[ "$param_value" =~ ^[[:space:]]*[\{\[] ]]; then
+                add_param "${2%%=*}" "$param_value"
+            else
+                add_param "${2%%=*}" "\"$(json_escape "$param_value")\""
+            fi
             shift 2
             ;;
         --vm-size)
@@ -194,6 +220,7 @@ trap 'rm -f "$PARAMS_FILE"' EXIT
     echo '}'
 } > "$PARAMS_FILE"
 
+TEMPLATE_NAME=$(basename "$TEMPLATE")
 # the windows az cli (ex: from wsl) needs a windows path to the template
 if [[ "$(command -v az)" == /mnt/* ]] && command -v wslpath > /dev/null; then
     TEMPLATE=$(wslpath -w "$TEMPLATE")
@@ -228,7 +255,12 @@ done <<< "$VM_ADDRESSES"
 HOSTS=$(IFS=,; echo "${HOST_LIST[*]}")
 echo "next steps:"
 echo "  $(dirname "$SCRIPT_DIR")/setup-cluster.sh --hosts $HOSTS --install-deps --install-dpdk"
-echo "  $(dirname "$SCRIPT_DIR")/run/run-testpmd-pair.sh --sender ${HOST_LIST[0]} --receiver ${HOST_LIST[1]}"
+if [[ "$TEMPLATE_NAME" == l3fwd.bicep ]]; then
+    # vmAddresses order is forwarder, sender, receiver
+    echo "  $(dirname "$SCRIPT_DIR")/run/run-l3fwd.sh --forwarder ${HOST_LIST[0]} --sender ${HOST_LIST[1]} --receiver ${HOST_LIST[2]}"
+else
+    echo "  $(dirname "$SCRIPT_DIR")/run/run-testpmd-pair.sh --sender ${HOST_LIST[0]} --receiver ${HOST_LIST[1]}"
+fi
 echo "  cleanup: az group delete --name $RESOURCE_GROUP"
 echo "deployed VMs:"
 echo "$VM_ADDRESSES"

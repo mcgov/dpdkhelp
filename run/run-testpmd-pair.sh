@@ -10,13 +10,13 @@
 # during setup and passed to the sender with --tx-dst, which matches each sender port
 # to the receiver ip on the same subnet.
 #
-# usage: run-testpmd-pair.sh --sender user@ip --receiver user@ip [--pmd netvsc|mana]
+# usage: run-testpmd-pair.sh --sender user@ip --receiver user@ip [--pmd auto|netvsc|mana]
 #            [-t|--timeout <seconds>] [--skip-setup] [--log-dir <dir>] [-i <key>] [-- <run-dpdk-testpmd.sh args>]
 # args after -- are passed to run-dpdk-testpmd.sh on both VMs (ex: --queues 4 --core-list 2,4,6,8)
 # env: START_DELAY seconds to wait for the receiver to start before the sender (default 15)
 
 ssh_key_path="$HOME/.ssh/id_rsa"
-PMD="netvsc"
+PMD="auto"
 TIMEOUT=120
 # seconds to let the receiver start before starting the sender
 START_DELAY="${START_DELAY:-15}"
@@ -32,8 +32,9 @@ eval set -- "$PARSED"
 while true; do
     case "$1" in
         -h|--help)
-            echo "Usage: $0 --sender user@ip --receiver user@ip [--pmd netvsc|mana] [-t|--timeout <seconds>]"
+            echo "Usage: $0 --sender user@ip --receiver user@ip [--pmd auto|netvsc|mana] [-t|--timeout <seconds>]"
             echo "          [--skip-setup] [--log-dir <dir>] [-i <ssh_key>] [-- <run-dpdk-testpmd.sh args>]"
+            echo "  --pmd: auto (default) picks mana if the VM has a mana nic, otherwise netvsc"
             echo "  --skip-setup: reuse the nic setup and cache from a previous run"
             echo "  args after -- are passed to run-dpdk-testpmd.sh on both VMs"
             echo "  note: requires passwordless sudo on both VMs (see setup/passwordless-sudo.sh)"
@@ -53,8 +54,8 @@ while true; do
             ;;
         --pmd)
             PMD="$2"
-            if [[ "$PMD" != "netvsc" ]] && [[ "$PMD" != "mana" ]]; then
-                echo "Error: --pmd must be netvsc or mana"
+            if [[ "$PMD" != "netvsc" ]] && [[ "$PMD" != "mana" ]] && [[ "$PMD" != "auto" ]]; then
+                echo "Error: --pmd must be netvsc, mana or auto"
                 exit 1
             fi
             shift 2
@@ -112,8 +113,10 @@ function setup_host() {
         return 1
     }
     echo "[$role] setting up $PMD pmd on $host with nics: $HOST_NICS"
-    rssh "$host" "dpdkhelp/setup/quick-setup.sh --pmd $(quote_args "$PMD") --device $(quote_args "$HOST_NICS")" || {
-        echo "Error: setup failed on $role $host" 1>&2
+    rssh "$host" "dpdkhelp/setup/quick-setup.sh --pmd $(quote_args "$PMD") --device $(quote_args "$HOST_NICS")" \
+        2>&1 | tee "$LOG_DIR/setup-$role.log"
+    [[ "${PIPESTATUS[0]}" -eq 0 ]] || {
+        echo "Error: setup failed on $role $host, see $LOG_DIR/setup-$role.log" 1>&2
         return 1
     }
 }
