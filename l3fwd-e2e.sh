@@ -41,6 +41,7 @@ while true; do
             echo "           [--log-dir <dir>] [-- <run-dpdk-l3fwd.sh args>]"
             echo "  --subnet-pairs: sender/receiver subnet pairs, the forwarder needs 1 + 2 * pairs nics"
             echo "      (Standard_D8s_v5 supports 4 nics, so more than 1 pair needs a bigger --forwarder-vm-size)"
+            echo "  --log-dir: default <dpdkhelp>/logs/<resource group>/<timestamp>"
             echo "  --keep: keep the resource group and VMs after the test"
             echo "  --keep-on-failure: keep them only if a step fails"
             echo "  the resource group defaults to \$USER-l3fwd-<timestamp>, and is never deleted if it already existed."
@@ -111,8 +112,9 @@ L3FWD_ARGS=( "$@" )
     exit 1
 }
 [[ -n "$RESOURCE_GROUP" ]] || RESOURCE_GROUP="$USER-l3fwd-$(date +%m%d-%H%M%S)"
-[[ -n "$LOG_DIR" ]] || LOG_DIR="./logs/$RESOURCE_GROUP"
+[[ -n "$LOG_DIR" ]] || LOG_DIR="$SCRIPT_DIR/logs/$RESOURCE_GROUP/$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$LOG_DIR" || exit 1
+echo "=== logs in $LOG_DIR"
 VMS_FILE="$LOG_DIR/vms.txt"
 
 CREATED_RG=""
@@ -176,6 +178,13 @@ for host in "$FORWARDER" "$SENDER" "$RECEIVER"; do
     done
     fail "could not ssh to $host"
 done
+
+echo "=== nics"
+for host in "$FORWARDER" "$SENDER" "$RECEIVER"; do
+    # pci class 0200 is ethernet, -nn adds the vendor:device ids (1414:00ba is mana, 15b3 is mellanox)
+    ssh -n -i "$ssh_key_path" "$host" 'lspci -nn -d ::0200 2> /dev/null || echo "lspci not found"' 2>&1 \
+        | sed -u "s/^/[$host] /"
+done | tee "$LOG_DIR/nics.log"
 
 # dpdk is only used on the forwarder, but it builds in parallel on all hosts so it doesn't add much time
 echo "=== installing dpdk on $HOSTS"

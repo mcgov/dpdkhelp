@@ -2,6 +2,5 @@
 # SPDX-License-Identifier: MIT
 # author: mamcgove at microsoft aka @mcgov on github
 
-export DEBIAN_FRONTEND=noninteractive; sudo apt install -y iperf3
-export DEBIAN_FRONTEND=noninteractive; sudo apt install -y iperf
+"$(dirname "$(readlink -f "$(dirname "$0")")")/setup/apt-retry.sh" install -y iperf3 iperf
 exit $?

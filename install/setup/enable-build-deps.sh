@@ -26,7 +26,7 @@ elif [[ -f /etc/apt/sources.list ]] || ! [[ -f /etc/apt/ubuntu.sources ]]; then
     # doing this selectively instead of enabling all deb-src lines
 fi
 
-sudo -E DEBIAN_FRONTEND=noninteractive apt update -y \
+"$(dirname "$(readlink -f "$0")")"/apt-retry.sh update -y \
 || { echo "Failed to update apt sources to enable build-deps"; exit 1; }
 
 exit 0

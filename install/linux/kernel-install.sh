@@ -112,11 +112,11 @@ function get_cores_for_build {
 # tested on 22.04 and RHEL 8.6/9.2
 if command -v apt; then
     export DEBIAN_FRONTEND=noninteractive;
-    sudo -E apt-get update -y -q;
+    "$SETUP_DIR/apt-retry.sh" update -y -q;
     # shellcheck disable=SC2015
     "$SETUP_DIR/enable-build-deps.sh" && \
-        sudo apt-get build-dep -y -q dpdk rdma-core && \
-        sudo apt install flex bison libssl-dev libelf-dev python3-pip dwarves libnuma-dev libpcap-dev libdw-dev dwarves elfutils \
+        "$SETUP_DIR/apt-retry.sh" build-dep -y -q dpdk rdma-core && \
+        "$SETUP_DIR/apt-retry.sh" install -y -q flex bison libssl-dev libelf-dev python3-pip dwarves libnuma-dev libpcap-dev libdw-dev dwarves elfutils \
     || { 
         echo "could not install dependencies"; exit 1;
     }

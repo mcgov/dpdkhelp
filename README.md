@@ -32,7 +32,7 @@ Each sender port sends to the receiver ip on the same subnet. (requires DPDK >=2
 
 Deploy two VMs (deploy/main.bicep), install dpdk, run the sender/receiver pair, then delete the resource group.
 Use `--keep` to keep the VMs afterwards, or `--keep-on-failure` to keep them only if a step fails.
-An existing resource group is never deleted. Logs go to `./logs/$resource_group`.
+An existing resource group is never deleted. Logs go to `logs/$resource_group/<timestamp>` in this repo (or `--log-dir`).
 
 ``` bash
 az login

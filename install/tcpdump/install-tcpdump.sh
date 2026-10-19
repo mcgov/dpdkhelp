@@ -1,4 +1,4 @@
 #! /bin/bash
 # SPDX-License-Identifier: MIT
 # author: mamcgove at microsoft aka @mcgov on github
-DEBIAN_FRONTEND=noninteractive sudo apt install -y tcpdump
+"$(dirname "$(readlink -f "$(dirname "$0")")")/setup/apt-retry.sh" install -y tcpdump
