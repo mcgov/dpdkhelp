@@ -43,7 +43,7 @@ done
 CMAKE_ARGS_I386='-DIN_PLACE=0 -DNO_MAN_PAGES=1 -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_C_COMPILER=/usr/bin/i686-linux-gnu-gcc -DCMAKE_C_FLAGS=-m32'
 CMAKE_ARGS_DEFAULT='-DIN_PLACE=0 -DNO_MAN_PAGES=1 -DCMAKE_INSTALL_PREFIX=/usr'
 if [[ -n "$DPDK_BUILD_32BIT" ]]; then
-    yes '' | sudo DEBIAN_FRONTEND=noninteractive apt install -y gcc-i686-linux-gnu pkg-config
+    "$(dirname "$SCRIPT_DIR")/setup/apt-retry.sh" install -y gcc-i686-linux-gnu pkg-config
     CMAKE_ARGS="$CMAKE_ARGS_I386"
     export PKG_CONFIG_LIBDIR=/usr/lib/i386-linux-gnu/pkgconfig
 else
