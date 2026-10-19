@@ -23,8 +23,10 @@
 #      set up hugepages and the pmd on all forwarder data nics
 #   2. on the sender/receiver: route the remote subnet via the forwarder nic ip and add a
 #      permanent neighbor entry for the forwarder nic mac (nothing answers arp once it's bound to dpdk)
-#   3. start l3fwd on the forwarder with an lpm rule and --eth-dest per port
-#   4. run ntttcp from the sender to the receiver on each subnet pair
+#   3. check that the sender and receiver can't ping each other yet, a reply means traffic is
+#      leaking around the forwarder and the test would measure the wrong path
+#   4. start l3fwd on the forwarder with an lpm rule and --eth-dest per port
+#   5. run ntttcp from the sender to the receiver on each subnet pair
 #
 # usage: run-l3fwd.sh --forwarder user@ip --sender user@ip --receiver user@ip [--pmd auto|netvsc|mana]
 #            [-t|--timeout <seconds>] [--ports <n>] [--threads <n>] [--skip-setup] [--log-dir <dir>]
@@ -240,6 +242,29 @@ for ((p = 0; p < PAIR_COUNT; p++)); do
     PEER_ARGS+=( --peer "$snd_ip,$snd_mac" --peer "$rcv_ip,$rcv_mac" )
     PAIRS+=( "$snd_if $snd_ip $rcv_if $rcv_ip" )
 done
+
+function check_no_leak() {
+    # usage: check_no_leak <host> <role> <src if> <src ip> <dst ip>
+    # the forwarder nics are bound to dpdk with nothing running, so any reply took another path
+    # (missing/undone guest routes, the azure route table, kernel forwarding on the forwarder, eth0...)
+    local host="$1" role="$2" src_if="$3" src_ip="$4" dst_ip="$5" ping_cmd
+    for ping_cmd in "ping -c 2 -W 1 -I $src_if $dst_ip" "ping -c 2 -W 1 $dst_ip"; do
+        if rssh "$host" "$ping_cmd" >> "$LOG_DIR/leak-check-$role.log" 2>&1; then
+            rssh "$host" "ip route get $dst_ip; ip route get $dst_ip from $src_ip oif $src_if" \
+                >> "$LOG_DIR/leak-check-$role.log" 2>&1
+            fail "traffic leaks before l3fwd started: '$ping_cmd' on $role $host got a reply, see $LOG_DIR/leak-check-$role.log"
+        fi
+    done
+}
+echo "checking that the test subnets can't reach each other before l3fwd starts..."
+: > "$LOG_DIR/leak-check-sender.log"
+: > "$LOG_DIR/leak-check-receiver.log"
+for ((p = 0; p < PAIR_COUNT; p++)); do
+    read -r snd_if snd_ip rcv_if rcv_ip <<< "${PAIRS[$p]}"
+    check_no_leak "$SENDER" sender "$snd_if" "$snd_ip" "$rcv_ip"
+    check_no_leak "$RECEIVER" receiver "$rcv_if" "$rcv_ip" "$snd_ip"
+done
+echo "ok, no replies without l3fwd"
 
 # start l3fwd, it's stopped once ntttcp is done; the timeout is a backstop
 L3FWD_LOG="$LOG_DIR/l3fwd-forwarder.log"

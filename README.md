@@ -54,6 +54,8 @@ deploy/l3fwd.bicep creates the VMs, subnet pairs (`10.0.1.0/24`<->`10.0.2.0/24`,
 ip forwarding on the forwarder nics, and the azure route tables that send each pair's traffic through the forwarder.
 run/run-l3fwd.sh adds the matching routes and neighbor entries on the sender/receiver
 (setup/l3fwd/setup-l3fwd-route.sh), then starts l3fwd (run/run-dpdk-l3fwd.sh) and ntttcp on every subnet pair.
+Before l3fwd starts it checks that the sender and receiver can't ping each other on the test subnets,
+the run fails if traffic can get around the forwarder.
 
 ``` bash
 ./deploy/deploy.sh -g $resource_group -l $region --template l3fwd [--param subnetPairs=2 --param forwarderVmSize=Standard_D16s_v5]
