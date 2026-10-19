@@ -16,7 +16,7 @@ eval set -- "$PARSED"
 while true; do
     case "$1" in
         -h|--help)
-            echo "Usage: usage: $0 [--help] [ -i \$key_path] --hosts user@host[,user@host2,user2@host3,...] [--install-dpdk] [--install-rdma-core]"
+            echo "Usage: usage: $0 [--help] [ -i \$key_path] --hosts user@host[,user@host2,user2@host3,...] [--install-deps] [--install-dpdk] [--install-rdma-core]"
             exit 0
             ;;
         -i|--key)

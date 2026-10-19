@@ -75,6 +75,10 @@ if [[ "$USER" == "root" ]]; then
     exit 1;
 fi
 
+# cache the mac and ip subnet of each nic before the kernel interfaces go away
+"$(dirname "$SCRIPT_DIR")/util/cache-nic-info.sh" --device "$(IFS=,; echo "${devices[*]}")" \
+    || echo "Warning: could not cache nic info for all devices" 1>&2
+
 # grab the dpdk vdev info since we're about to mess with the
 # interfaces, which will remove the upper eth* interface.
 VDEV_ARG_PARTS=()

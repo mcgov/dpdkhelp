@@ -93,6 +93,12 @@ for pci_slot in "${!addresses[@]}"; do
     vdev_arg+=" --vdev=$pci_slot,${addresses[$pci_slot]}"
 done
 
+# cache the mac and ip subnet of each nic before they're taken down
+if [[ "${#devices[@]}" -gt 0 ]]; then
+    "$(dirname "$SCRIPT_DIR")/util/cache-nic-info.sh" --device "$(IFS=,; echo "${devices[*]}")" \
+        || echo "Warning: could not cache nic info for all devices" 1>&2
+fi
+
 for device in "${devices[@]}"; do
     sudo ip link set "$device" down || { 
         echo "Could not set device $device down!" 1>&2;

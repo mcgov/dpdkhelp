@@ -87,3 +87,22 @@ function get_network_pci_devices () {
 function damn() {
     echo "$@" 1>&2
 }
+function ip4_to_int() {
+    # convert a dotted ipv4 address to an integer, fails on invalid input
+    local a b c d
+    IFS=. read -r a b c d <<< "$1"
+    for octet in "$a" "$b" "$c" "$d"; do
+        [[ "$octet" =~ ^[0-9]+$ ]] && ((octet <= 255)) || return 1
+    done
+    echo "$(( (a << 24) | (b << 16) | (c << 8) | d ))"
+}
+function ip4_in_cidr() {
+    # usage: ip4_in_cidr <ip> <net>/<prefix> ; returns 0 if ip is in the subnet
+    local ip_int net_int prefix mask
+    ip_int=$(ip4_to_int "$1") || return 1
+    net_int=$(ip4_to_int "${2%/*}") || return 1
+    prefix="${2#*/}"
+    [[ "$prefix" =~ ^[0-9]+$ ]] && ((prefix <= 32)) || return 1
+    mask=$(( prefix == 0 ? 0 : (0xFFFFFFFF << (32 - prefix)) & 0xFFFFFFFF ))
+    (( (ip_int & mask) == (net_int & mask) ))
+}

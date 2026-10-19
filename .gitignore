@@ -1,2 +1,5 @@
 ./**.dpdkcache
 internal
+availability_set_properties.json
+availability_set_tags.txt
+logs
