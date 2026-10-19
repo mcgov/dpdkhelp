@@ -87,3 +87,42 @@ function get_network_pci_devices () {
 function damn() {
     echo "$@" 1>&2
 }
+function ip4_to_int() {
+    # convert a dotted ipv4 address to an integer, fails on invalid input
+    local a b c d
+    IFS=. read -r a b c d <<< "$1"
+    for octet in "$a" "$b" "$c" "$d"; do
+        [[ "$octet" =~ ^[0-9]+$ ]] && ((octet <= 255)) || return 1
+    done
+    echo "$(( (a << 24) | (b << 16) | (c << 8) | d ))"
+}
+function ip4_in_cidr() {
+    # usage: ip4_in_cidr <ip> <net>/<prefix> ; returns 0 if ip is in the subnet
+    local ip_int net_int prefix mask
+    ip_int=$(ip4_to_int "$1") || return 1
+    net_int=$(ip4_to_int "${2%/*}") || return 1
+    prefix="${2#*/}"
+    [[ "$prefix" =~ ^[0-9]+$ ]] && ((prefix <= 32)) || return 1
+    mask=$(( prefix == 0 ? 0 : (0xFFFFFFFF << (32 - prefix)) & 0xFFFFFFFF ))
+    (( (ip_int & mask) == (net_int & mask) ))
+}
+function int_to_ip4() {
+    echo "$(( ($1 >> 24) & 255 )).$(( ($1 >> 16) & 255 )).$(( ($1 >> 8) & 255 )).$(( $1 & 255 ))"
+}
+function ip4_network() {
+    # usage: ip4_network <ip>/<prefix> ; prints the network address in cidr form (ex: 10.0.1.0/24)
+    local ip_int prefix mask
+    ip_int=$(ip4_to_int "${1%/*}") || return 1
+    prefix="${1#*/}"
+    [[ "$prefix" =~ ^[0-9]+$ ]] && ((prefix <= 32)) || return 1
+    mask=$(( prefix == 0 ? 0 : (0xFFFFFFFF << (32 - prefix)) & 0xFFFFFFFF ))
+    echo "$(int_to_ip4 $(( ip_int & mask )))/$prefix"
+}
+function ip4_to_ipv6_lpm() {
+    # usage: ip4_to_ipv6_lpm <ip> ; ipv4-mapped ipv6 /56 prefix for the ip's /24, for l3fwd ipv6 rules.
+    # dpdk doesn't accept shortened ipv6 addresses.
+    local a b c d
+    ip4_to_int "$1" > /dev/null || return 1
+    IFS=. read -r a b c d <<< "$1"
+    printf '0000:0000:0000:0000:0000:FFFF:%02x%02x:%02x00/56\n' "$a" "$b" "$c"
+}

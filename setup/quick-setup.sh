@@ -26,7 +26,8 @@ eval set -- "$PARSED"
 while true; do
     case "$1" in
         -h|--help)
-            echo "Usage: $0 [--device|--interface eth1[,eth2]] [--help]"
+            echo "Usage: $0 [--device|--interface eth1[,eth2]] [--pmd netvsc|mana|auto] [--help]"
+            echo "  --pmd auto: use mana if a mana nic is present, otherwise netvsc (default netvsc)"
             exit 0
             ;;
         -d|--device|--interface)
@@ -47,6 +48,23 @@ while true; do
             ;;
     esac
 done
+
+if [[ "$pmd" == "auto" ]]; then
+    # shellcheck disable=SC1091
+    source "$(dirname "$SCRIPT_DIR")/util/functions.sh"
+    # netvsc works on top of mana or mlx VFs, but mana nics get the native pmd
+    if is_mana_vm; then
+        pmd="mana"
+    else
+        pmd="netvsc"
+    fi
+    echo "--pmd auto: using the $pmd pmd"
+fi
+if [[ "$pmd" != "netvsc" ]] && [[ "$pmd" != "mana" ]]; then
+    echo "Error: --pmd must be netvsc, mana or auto"
+    exit 1
+fi
+echo "$pmd" > "$CACHE_DIR/pmd"
 
 "$SCRIPT_DIR"/enable-hugepages.sh -c 16 -s 1G --node 0 && "$SCRIPT_DIR"/setup-"$pmd"-pmd.sh --device "$devices"
 

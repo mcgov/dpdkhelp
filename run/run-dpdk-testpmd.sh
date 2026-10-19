@@ -18,10 +18,11 @@ UTIL_DIR="$(dirname "$SCRIPT_DIR")/util"
 # shellcheck disable=SC1091
 source "$UTIL_DIR/functions.sh"
 MP_ARGS=()
+TX_IP_ARGS=()
 
 
 OPTIONS="hm:t:"
-LONGOPTIONS="mode:,tx-ip:,help,timeout:,queues:,core-list:,nb-cores:,asan,num-procs:,proc-id:"
+LONGOPTIONS="mode:,tx-ip:,tx-dst:,help,timeout:,queues:,core-list:,nb-cores:,asan,num-procs:,proc-id:"
 # Parse the options
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTIONS --name "$0" -- "$@")
 # shellcheck disable=SC2181
@@ -36,7 +37,9 @@ eval set -- "$PARSED"
 while true; do
     case "$1" in
         -h|--help)
-            echo "Usage: $0 [-m|--mode <rxonly|txonly>] [--tx-ip <sender_ip>,<receiver_ip>] [-t|--timeout <int>]"
+            echo "Usage: $0 [-m|--mode <rxonly|txonly>] [--tx-ip [port:]<sender_ip>,<receiver_ip>]... [--tx-dst <receiver_ip>[,<receiver_ip>...]] [-t|--timeout <int>]"
+            echo "  --tx-ip may be repeated to set addresses per-port"
+            echo "  --tx-dst resolves per-port --tx-ip args, matching each receiver ip to the subnet of a port"
             exit 0
             ;;
         -m|--mode)
@@ -48,13 +51,30 @@ while true; do
             shift 2
             ;;
         --tx-ip)
-            IFS=',' read -r -a IP_ARGS <<< "$2"
+            # format: [port:]src,dst ; may be given multiple times (once per port)
+            TX_IP_VAL="$2"
+            TX_IP_PORT=""
+            if [[ "$TX_IP_VAL" == *:* ]]; then
+                TX_IP_PORT="${TX_IP_VAL%%:*}"
+                TX_IP_VAL="${TX_IP_VAL#*:}"
+                if ! [[ "$TX_IP_PORT" =~ ^[0-9]+$ ]]; then
+                    echo "Error: invalid port id '$TX_IP_PORT' in --tx-ip $2"
+                    exit 1
+                fi
+            fi
+            IFS=',' read -r -a IP_ARGS <<< "$TX_IP_VAL"
             SEND_IP="${IP_ARGS[0]}"
             RECV_IP="${IP_ARGS[1]}"
-            if [[ -z "$SEND_IP" ]] || [[ -z "$RECV_IP" ]]; then
-                echo "Error: must provide both sender and receiver IP addresses"
+            if [[ -z "$SEND_IP" ]] || [[ -z "$RECV_IP" ]] || [[ "${#IP_ARGS[@]}" -ne 2 ]]; then
+                echo "Error: --tx-ip $2 must be [port:]<sender_ip>,<receiver_ip>"
                 exit 1
             fi
+            TX_IP_ARGS+=( "${TX_IP_PORT:+$TX_IP_PORT:}$SEND_IP,$RECV_IP" )
+            shift 2
+            ;;
+        --tx-dst)
+            # receiver ip(s); the port and sender ip are resolved from the cached nic subnets
+            TX_DST+="${TX_DST:+,}$2"
             shift 2
             ;;
         --queues)
@@ -105,10 +125,20 @@ CACHE_DIR="$(dirname "$SCRIPT_DIR")/.dpdkcache"
     exit 1; 
 }
 
+if [[ "$FWDMODE" == "txonly" ]] && [[ -n "$TX_DST" ]]; then
+    # resolve per-port --tx-ip args with dpdk-devname and the cached nic info
+    # shellcheck disable=SC2207
+    RESOLVED_TX_IPS=( $("$UTIL_DIR/resolve-tx-ip.sh" --dst "$TX_DST") ) || {
+        echo "Error: could not resolve --tx-ip args for --tx-dst $TX_DST"
+        exit 1;
+    }
+    echo "Note: resolved --tx-ip args: ${RESOLVED_TX_IPS[*]}"
+    TX_IP_ARGS+=( "${RESOLVED_TX_IPS[@]}" )
+fi
+
 if [[ "$FWDMODE" == "txonly" ]]; then
     # txonly mode requires sender and receiver IP addresses
-    # shellcheck disable=SC2015
-    [[ -n "$SEND_IP" ]] && [[ -n "$RECV_IP" ]] ||  {
+    [[ "${#TX_IP_ARGS[@]}" -gt 0 ]] ||  {
         echo "Error: txonly mode requires sender and receiver IP addresses"
         exit 1;
     }
@@ -122,10 +152,11 @@ if [[ -z "$TIMEOUT" ]]; then
     TIMEOUT=120
 fi
 
-if [[ "$FWDMODE" == "rxonly" ]] || [[ -z "$SEND_IP" ]] || [[ -z "$RECV_IP" ]] || [[ "$FWDMODE" == "5tswap" ]]; then
-    SENDER_IP_ARG=""
-else
-    SENDER_IP_ARG="--tx-ip=\"$SEND_IP,$RECV_IP\""
+SENDER_IP_ARG=""
+if [[ "$FWDMODE" == "txonly" ]]; then
+    for TX_IP in "${TX_IP_ARGS[@]}"; do
+        SENDER_IP_ARG+=" --tx-ip=\"$TX_IP\""
+    done
 fi
 
 sudo ufw disable || true;
